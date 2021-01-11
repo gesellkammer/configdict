@@ -46,3 +46,15 @@ This will create the dictionary and load any persisted version. Any saved
 modifications will override the default values. Whenever the user changes any
 value (via ``config[key] = newvalue``) the dictionary will be saved.
 
+
+A ConfigDict can also be created setting by setting:
+
+
+.. code-block:: python
+
+    config = ConfigDict("myproj:subproj")
+    config.addKey("font-size", 10.0, doc="The size of the font, in pixels")
+    config.addKey("font-family", "Monospace", choices={'Roboto', 'Monospace'})
+    config.addKey("port", 9100, range=(9000, 65000), type=int, 
+                  doc="The port number to listen to")
+    config.load()
