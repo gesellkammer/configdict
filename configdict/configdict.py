@@ -31,11 +31,11 @@ def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
         a postprocessed validator dict
     """
     stripped_keys = {key.split("::")[0] for key in validatordict.keys()}
-    not_present = stripped_keys - defaultdict.keys()
+    not_present = stripped_keys-defaultdict.keys()
     if any(not_present):
         notpres = ", ".join(sorted(not_present))
         raise KeyError(
-            f"The validator dict has keys not present in the defaultdict ({notpres})"
+                f"The validator dict has keys not present in the defaultdict ({notpres})"
         )
     v = {}
     for key, value in validatordict.items():
@@ -49,7 +49,7 @@ def _isfloaty(value):
     return isinstance(value, (int, float)) or hasattr(value, '__float__')
 
 
-def _openInStandardApp(path):
+def _openInStandardApp(path:str) -> None:
     """
     Open path with the app defined to handle it by the user
     at the os level (xdg-open in linux, start in win, open in osx)
@@ -57,7 +57,6 @@ def _openInStandardApp(path):
     import subprocess
     platform = sys.platform
     if platform == 'linux':
-        print(path)
         subprocess.call(["xdg-open", path])
     elif platform == "win32":
         os.startfile(path)
@@ -65,6 +64,38 @@ def _openInStandardApp(path):
         subprocess.call(["open", path])
     else:
         raise RuntimeError(f"platform {platform} not supported")
+
+
+def _wait_on_file_modified(path:str, timeout:float=None) -> bool:
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import PatternMatchingEventHandler
+    except ImportError:
+        logger.info("watchdog is needed to be able to wait on file events. Install via `pip install watchdog`")   
+        _waitOnClick()
+        return
+        
+    import time
+    directory, base = _os.path.split(path)
+    if not directory:
+        directory = "."
+    handler = PatternMatchingEventHandler([base], ignore_patterns="",
+                                          ignore_directories=True, case_sensitive=True)
+    observer = Observer()
+    modified = False
+
+    def on_modified(event):
+        nonlocal modified
+        modified = True
+        observer.stop()
+
+    handler.on_modified = on_modified
+    observer.schedule(handler, path=directory, recursive=False)
+    observer.start()
+    if timeout is None:
+        timeout = 360000  # 100 hours
+    observer.join(timeout)
+    return modified
 
 
 def _dialog_show_info(msg, title=None):
@@ -126,6 +157,11 @@ class CheckedDict(dict):
 
     def _changed(self):
         self._allowedkeys = set(self.default.keys())
+
+    def copy(self) -> CheckedDict:
+        out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
+                          precallback=self._precallback, callback=self._callback)
+        return out
 
     def diff(self) -> dict:
         """
@@ -220,7 +256,7 @@ class CheckedDict(dict):
         if not self._validator:
             logger.debug("getChoices: validator not set")
             return None
-        key2 = key + "::choices"
+        key2 = key+"::choices"
         choices = self._validator.get(key2, None)
         if isinstance(choices, FunctionType):
             realchoices = choices()
@@ -247,7 +283,7 @@ class CheckedDict(dict):
         """
         choices = self.getChoices(key)
         if choices is not None and value not in choices:
-            return f"key should be one of {choices}, got {value}"
+            return f"key {key} should be one of {choices}, got {value}"
         t = self.getType(key)
         if t == float:
             if not _isfloaty(value):
@@ -257,7 +293,7 @@ class CheckedDict(dict):
         elif not isinstance(value, t):
             return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
         r = self.getRange(key)
-        if r and not (r[0] <= value <= r[1]):
+        if r and not (r[0]<=value<=r[1]):
             return f"Value for key {key} should be within range {r}, got {value}"
         return None
 
@@ -267,7 +303,7 @@ class CheckedDict(dict):
         if not self._validator:
             logger.debug("getChoices: validator not set")
             return None
-        return self._validator.get(key + "::range", None)
+        return self._validator.get(key+"::range", None)
 
     def getType(self, key: str):
         """
@@ -280,7 +316,7 @@ class CheckedDict(dict):
         See Also: checkValue
         """
         if self._validator is not None:
-            definedtype = self._validator.get(key + "::type")
+            definedtype = self._validator.get(key+"::type")
             if definedtype:
                 return definedtype
             choices = self.getChoices(key)
@@ -299,7 +335,7 @@ class CheckedDict(dict):
     def getTypestr(self, key: str) -> str:
         t = self.getType(key)
         if isinstance(t, tuple):
-            return "(" + ", ".join(x.__name__ for x in t) + ")"
+            return "("+", ".join(x.__name__ for x in t)+")"
         else:
             return t.__name__
 
@@ -316,32 +352,40 @@ class CheckedDict(dict):
         self.clear()
         self.update(self.default)
 
-    def update(self, d: dict) -> None:
-        errormsg = self.checkDict(d)
-        if errormsg:
-            raise ValueError(f"dict is invalid: {errormsg}")
-        super().update(d)
+    def update(self, d: dict=None, **kws) -> None:
+        if d:
+            errormsg = self.checkDict(d)
+            if errormsg:
+                raise ValueError(f"dict is invalid: {errormsg}")
+            super().update(d)
+        if kws:
+            errormsg = self.checkDict(kws)
+            if errormsg:
+                raise ValueError(f"invalid keywords: {errormsg}")
+            super().update(kws)
 
     def override(self, key: str, value, default=None):
         """
         The same as `value if value is not None else config.get(key, default)
         """
-        return value if value is not None else self.get('key', default)
+        return value if value is not None else self.get(key, default)
 
 
 class ConfigDict(CheckedDict):
-
     registry: Dict[str, ConfigDict] = {}
+    _helpwidth: int = 58
 
     def __init__(self,
                  name: str,
                  default: Dict[str, Any] = None,
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
-                 precallback=None) -> None:
+                 precallback=None,
+                 persistent=True,
+                 load=True) -> None:
         """
-        This is a persistent, unique dictionary used for configuration of
-        a module / app. It is saved under the config folder determined by
+        This is a (optionally) persistent, unique dictionary used for configuration
+        of a module / app. It is saved under the config folder determined by
         the OS (and is thus OS dependent) and no two instances of the same
         config can coexist.
 
@@ -406,9 +450,10 @@ class ConfigDict(CheckedDict):
             config.load()
 
         """
-        name = _normalizeName(name)
-        if not _isValidName(name):
-            raise ValueError(f"name {name} is invalid for a config")
+        if name:
+            name = _normalizeName(name)
+            if not _isValidName(name):
+                raise ValueError(f"name {name} is invalid for a config")
         if name in ConfigDict.registry:
             logger.warning("A ConfigDict with the given name already exists!")
         cfg = getConfig(name)
@@ -420,30 +465,99 @@ class ConfigDict(CheckedDict):
                          docs=docs,
                          callback=self._mycallback,
                          precallback=precallback)
-        self.name: str = name
-        # self._allowedkeys: set[str] = set(default.keys())
-        base, configname = _parseName(name)
-        self._base: str = base
-        self._configfile: str = configname + ".json"
-        self._configpath = None
-        self._callbackreg = []
-        self._ensureWritable()
-        self._helpwidth: int = 58
-        self.__class__.registry[name] = weakref.ref(self)
-        self._initdone = False
-        if default is not None:
+        self._name = ''
+        self._base = ''
+        self._configfile = ''
+        self._persistent = False
+        self._configPath = None
+        self._callbacks = []
+        self._loaded = False
+
+        if name:
+            self.name = name
+        else:
+            persistent = False
+            load = False
+
+        self.persistent = persistent
+
+        if default is not None and load:
             self.load()
 
+    @property
+    def name(self) -> Opt[str]:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -> None:
+        if self._name:
+            raise ValueError("Name has already been set")
+
+        if name and name in self.registry:
+            raise ValueError(f"Name {name} is already used")
+        self._name = name
+        base, configname = _parseName(name)
+        self._base: str = base
+        self._configFile: str = configname+".json"
+        self.registry[name] = self
+
+    @property
+    def persistent(self) -> bool:
+        return self._persistent
+
+    @persistent.setter
+    def persistent(self, value) -> None:
+        self._persistent = value
+        if value:
+            if not self._name:
+                raise ValueError("This ConfigDict can't be set to persistent without a name")
+            self._ensureWritable()
+
     def _mycallback(self, key, value):
-        for pattern, func in self._callbackreg:
+        for pattern, func in self._callbacks:
             if re.match(pattern, key):
                 func(self, key, value)
-        self.save()
+        if self._persistent:
+            self.save()
+
+    def update(self, d: dict=None, **kws) -> None:
+        if not d or kws:
+            return
+        kws.update(d)
+        errormsg = self.checkDict(kws)
+        if errormsg:
+            logger.error(f"ConfigDict: {errormsg}")
+            logger.error(
+                    f"Reset the dict to a default by removing the file '{self.getPath()}'"
+            )
+            raise ValueError("dict is invalid")
+        self._persistent, persistent = False, self._persistent
+        super().update(kws)
+        self._persistent = persistent
+        if persistent:
+            self.save()
+
+    def copy(self) -> ConfigDict:
+        return self.clone(name='', persistent=False, cloneCallbacks=False)
+
+    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=False
+              ) -> ConfigDict:
+        if name == self._name or name in self.registry:
+            raise ValueError(f"name {name} is already taken!")
+        out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
+                         persistent=False, load=False, name=name)
+        out.update(self)
+        if name and persistent:
+            out._persistent = True
+        if cloneCallbacks and self._callbacks:
+            for pattern, func in self._callbacks:
+                out.registerCallback(func, pattern)
+        return out
 
     def registerCallback(self, func, pattern=None) -> None:
         """
         Register a callback to be fired when a key matching the given pattern is
-        changed. If no pattern is given, your function will be called for
+        changed. If no pattern is given, the function will be called for
         every key.
 
         Args:
@@ -453,7 +567,7 @@ class ConfigDict(CheckedDict):
                 value - the new value
             pattern: call func when pattern matches key
         """
-        self._callbackreg.append((pattern or r".*", func))
+        self._callbacks.append((pattern or r".*", func))
 
     def _ensureWritable(self) -> None:
         """ Make sure that we can serialize this dict to disk """
@@ -472,7 +586,6 @@ class ConfigDict(CheckedDict):
         """
         path = self.getPath()
         logger.debug(f"Saving config to {path}")
-        logger.debug("Config: %s" % json.dumps(self, indent=True))
         f = open(path, "w")
         json.dump(self, f, indent=True, sort_keys=True)
 
@@ -482,7 +595,7 @@ class ConfigDict(CheckedDict):
 
     def __str__(self) -> str:
         import tabulate
-        header = f"Config: {self.name}\n"
+        header = f"Config: {self._name}\n"
         rows = []
         keys = sorted(self.keys())
         for k in keys:
@@ -492,7 +605,7 @@ class ConfigDict(CheckedDict):
             choices = self.getChoices(k)
             if choices:
                 choicestr = ", ".join(str(ch) for ch in choices)
-                if len(choicestr) > self._helpwidth:
+                if len(choicestr)>self._helpwidth:
                     choiceslines = textwrap.wrap(choicestr, self._helpwidth)
                     lines.extend(choiceslines)
                 else:
@@ -510,37 +623,34 @@ class ConfigDict(CheckedDict):
                 lines.extend(doclines)
             for line in lines:
                 rows.append(("", "", line))
-        return header + tabulate.tabulate(rows)
+        return header+tabulate.tabulate(rows)
 
     def getPath(self) -> str:
         """ Return the path this dict will be saved to """
-        if self._configpath is not None:
-            return self._configpath
-        self._configpath = path = configPathFromName(self.name)
+        if self._configPath is not None:
+            return self._configPath
+        self._configPath = path = configPathFromName(self._name)
         return path
 
-    def update(self, d: dict) -> None:
-        """ update this dict with `d` """
-        errormsg = self.checkDict(d)
-        if errormsg:
-            logger.error(f"ConfigDict: {errormsg}")
-            logger.error(
-                f"Reset the dict to a default by removing the file '{self.getPath()}'"
-            )
-            raise ValueError("dict is invalid")
-        super().update(d)
-
-    def edit(self) -> ConfigDict:
+    def edit(self, wait_on_modified=False) -> ConfigDict:
         """
         Edit (and reload) this config in an external application
+
+        Args:
+            wait_on_modified: if True, we wait until the file is modified.
+                Otherwise the user must click the pop-up dialog to signal
+                that the editing is finished
         """
         self.save()
         _openInEditor(self.getPath())
-        _waitForClick()
+        if wait_on_modified:
+            _wait_on_file_modified(self.getPath())
+        else:
+            _waitForClick()
         self.load()
         return self
 
-    def load(self) -> ConfigDict:
+    def load(self) -> None:
         """
         Read the saved config, update self. This is used internally but it can be usedful
         if the file is changed externally and no monitoring is activated
@@ -556,7 +666,7 @@ class ConfigDict(CheckedDict):
         if not os.path.exists(configpath):
             if self.default is None:
                 logger.error(
-                    "No written config found, but default was not set")
+                        "No written config found, but default was not set")
                 raise FileNotFoundError(f"{configpath} not found")
             logger.debug("Using default config")
             confdict = self.default
@@ -571,32 +681,31 @@ class ConfigDict(CheckedDict):
                 logger.error(f"Could not read config {configpath}: {error}")
                 if self.default is not None:
                     logger.debug(
-                        "Couldn't read config. Using default as fallback")
+                            "Couldn't read config. Using default as fallback")
                     confdict = self.default
                 else:
                     logger.error(
-                        "Couldn't read config. No default given, we give up")
+                            "Couldn't read config. No default given, we give up")
                     raise
 
         # only keys in default should be accepted, but keys in the read
         # config should be discarded with a warning
-        keysOnlyInRead = confdict.keys() - self.default.keys()
+        keysOnlyInRead = confdict.keys()-self.default.keys()
         if keysOnlyInRead:
-            logger.warning(f"ConfigDict {self.name}, saved at {configpath}")
+            logger.warning(f"ConfigDict {self._name}, saved at {configpath}")
             logger.warning(
-                "There are keys defined in the saved"
-                " config which are not present in the default config. They will"
-                " be skipped:")
+                    "There are keys defined in the saved"
+                    " config which are not present in the default config. They will"
+                    " be skipped:")
             logger.warning(f"   {keysOnlyInRead}")
 
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
-        confdict = _merge_dicts(confdict, self.default)
+        confdict = _mergeDicts(confdict, self.default)
         self.checkDict(confdict)
         super().update(confdict)
-        self._initdone = True
-
+        self._loaded = True
 
 def _makeName(configname: str, base: str = None) -> str:
     if base is not None:
@@ -605,12 +714,12 @@ def _makeName(configname: str, base: str = None) -> str:
         return f":{configname}"
 
 
-def _merge_dicts(readdict, default):
+def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, Any]:
     out = {}
     sharedkeys = readdict.keys() & default.keys()
     for key in sharedkeys:
         out[key] = readdict[key]
-        onlyInDefault = default.keys() - readdict.keys()
+    onlyInDefault = default.keys() - readdict.keys()
     for key in onlyInDefault:
         out[key] = default[key]
     return out
@@ -639,7 +748,7 @@ def _normalizeName(name: str) -> str:
     """
     Originally a name would be of the form project:name,
     later on we enabled / and . to act as path separator
-    
+
     """
     if "/" in name:
         return name.replace("/", ":")
@@ -651,8 +760,8 @@ def _normalizeName(name: str) -> str:
 def _checkName(name):
     if not _isValidName(name):
         raise ValueError(
-            f"{name} is not a valid name for a config."
-            " It should contain letters, numbers and any of '.', '_', ':'")
+                f"{name} is not a valid name for a config."
+                " It should contain letters, numbers and any of '.', '_', ':'")
 
 
 def getConfig(name: str) -> Opt[ConfigDict]:
@@ -668,22 +777,14 @@ def getConfig(name: str) -> Opt[ConfigDict]:
     """
     name = _normalizeName(name)
     _checkName(name)
-    confref = ConfigDict.registry.get(name)
-    if confref:
-        return confref()
-    return None
+    return ConfigDict.registry.get(name)
 
 
 def activeConfigs() -> Dict[str, ConfigDict]:
     """
     Returns a dict of active configs
     """
-    out = {}
-    for name, configref in ConfigDict.registry.items():
-        config = configref()
-        if config:
-            out[name] = config
-    return out
+    return ConfigDict.registry.copy()
 
 
 def _removeConfigFromDisk(name: str) -> bool:
@@ -702,7 +803,7 @@ def configPathFromName(name: str) -> str:
     name = _normalizeName(name)
     userconfigdir = appdirs.user_config_dir()
     base, configname = _parseName(name)
-    configfile = configname + ".json"
+    configfile = configname+".json"
     if base is not None:
         configdir = os.path.join(userconfigdir, base)
     else:
