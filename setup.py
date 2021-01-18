@@ -6,7 +6,7 @@ import sys
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 1, 3)
+version = (0, 2, 0)
 
 setup(
     name='configdict',
@@ -23,6 +23,7 @@ setup(
         "setuptools",
         "appdirs",
         "tabulate",
+        "PyYAML"
     ],
     license="BSD",
     zip_safe=False,

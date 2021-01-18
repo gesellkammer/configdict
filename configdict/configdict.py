@@ -3,19 +3,109 @@ from __future__ import annotations
 import appdirs
 import os
 import json
+import yaml
 import logging
 import sys
 import re
-import weakref
 import textwrap
+import tempfile
 from types import FunctionType
-from typing import (Optional as Opt, Any, Tuple, Dict)
+from typing import (Optional as Opt, Any, Tuple, Dict, Union)
+
 
 __all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs"]
 
 logger = logging.getLogger("configdict")
 
 _UNKNOWN = object()
+
+
+def _yamlComment(doc: Opt[str],
+                 default: Any,
+                 choices: Opt[set],
+                 valuerange: Opt[Tuple[float, float]],
+                 valuetype: Opt[str],
+                 maxwidth=72) -> str:
+    """
+    This generated the yaml comments used when saving the config to yaml
+
+    Args:
+        doc: documentation for this key
+        default: the default value
+        choices: choices possible to this value
+        valuerange: a tuplet indicating a valid range for this value
+        valuetype: the type as string
+        maxwidth: the max. width of one line
+
+    Returns:
+        the generated comment as a string. It might contain multiple lines
+    """
+    if all(_ is None for _ in (doc, default, choices, valuerange, valuetype)):
+        return ""
+    """
+    # this is the documentation for bla
+    # default: xxx, choices: {10, 20, 30}, type: int, range: 0.0 - 1.0
+    """
+    lines = []
+    infoparts = []
+    if doc:
+        if len(doc) < maxwidth:
+            lines.append(f"# {doc}")
+        else:
+            lines.extend("# " + l for l in textwrap.wrap(doc, maxwidth))
+    if default:
+        infoparts.append(f"default: {default}")
+    if valuetype:
+        infoparts.append(f"type: {valuetype}")
+    if choices:
+        infoparts.append(f"choices: {choices}")
+    if valuerange:
+        infoparts.append(f"range: {valuerange[0]} - {valuerange[1]}")
+    if infoparts:
+        lines.append("# ** " + ", ".join(infoparts))
+    return "\n".join(lines)
+
+
+def _yamlValue(value) -> str:
+    s = yaml.dump(value, default_flow_style=True)
+    return s.replace("\n...\n", "")
+
+
+def _typeName(t: Union[str, type, Tuple[type,...]]) -> str:
+    if isinstance(t, str):
+        return t
+    elif isinstance(t, type):
+        return t.__name__
+    elif isinstance(t, tuple):
+        return " | ".join(v.__name__ for v in t)
+    else:
+        raise TypeError(f"Expected a str, type or tuple of types, got {t}")
+
+
+def _asYaml(d: Dict[str, Any],
+            doc: Dict[str, str],
+            default: Dict[str, Any],
+            validator: Dict[str, Any]=None,
+            ) -> str:
+    lines = []
+
+    items = list(d.items())
+    items.sort(key=lambda pair: pair[0])
+
+    for key, value in items:
+        choices = validator.get(f"{key}::choices")
+        valuerange = validator.get(f"{key}::range")
+        valuetype = validator.get(f"{key}::type")
+        valuetypestr = type(value).__name__ if valuetype is None else _typeName(valuetype)
+        comment = _yamlComment(doc=doc.get(key), default=default.get(key),
+                               choices=choices, valuerange=valuerange,
+                               valuetype=valuetypestr)
+        lines.append(comment)
+        l = f"{key}: {_yamlValue(value)}"
+        lines.append(l)
+        if not l.endswith("\n"):
+            lines.append("")
+    return "\n".join(lines)
 
 
 def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
@@ -34,9 +124,8 @@ def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
     not_present = stripped_keys-defaultdict.keys()
     if any(not_present):
         notpres = ", ".join(sorted(not_present))
-        raise KeyError(
-                f"The validator dict has keys not present in the defaultdict ({notpres})"
-        )
+        raise KeyError(f"The validator dict has keys not present "
+                       f"in the defaultdict ({notpres})")
     v = {}
     for key, value in validatordict.items():
         if key.endswith('::choices') and isinstance(value, (list, tuple)):
@@ -66,17 +155,18 @@ def _openInStandardApp(path:str) -> None:
         raise RuntimeError(f"platform {platform} not supported")
 
 
-def _wait_on_file_modified(path:str, timeout:float=None) -> bool:
+def _waitOnFileModified(path:str, timeout:float=None) -> bool:
     try:
         from watchdog.observers import Observer
         from watchdog.events import PatternMatchingEventHandler
     except ImportError:
-        logger.info("watchdog is needed to be able to wait on file events. Install via `pip install watchdog`")   
-        _waitOnClick()
-        return
+        logger.info("watchdog is needed to be able to wait on file events. "
+                    "Install via `pip install watchdog`")
+        _waitForClick()
+        return False
         
-    import time
-    directory, base = _os.path.split(path)
+
+    directory, base = os.path.split(path)
     if not directory:
         directory = "."
     handler = PatternMatchingEventHandler([base], ignore_patterns="",
@@ -98,7 +188,14 @@ def _wait_on_file_modified(path:str, timeout:float=None) -> bool:
     return modified
 
 
-def _dialog_show_info(msg, title=None):
+def _showInfoDialog(msg, title=None) -> None:
+    """
+    Creates a simple confirmation dialog box
+
+    Args:
+        msg: the message to display
+        title: a title for the window
+    """
     import tkinter as tk
     from tkinter import messagebox
     window = tk.Tk()
@@ -107,12 +204,13 @@ def _dialog_show_info(msg, title=None):
     window.destroy()
 
 
-def _waitForClick():
-    _dialog_show_info("Click OK when finished editing")
+def _waitForClick(title:str=None):
+    _showInfoDialog("Click OK when finished editing", title=title)
 
 
 def _openInEditor(cfg):
     _openInStandardApp(cfg)
+
 
 
 class CheckedDict(dict):
@@ -370,6 +468,10 @@ class CheckedDict(dict):
         """
         return value if value is not None else self.get(key, default)
 
+    def asYaml(self) -> str:
+        return _asYaml(self, doc=self._docs, validator=self._validator,
+                       default=self.default)
+
 
 class ConfigDict(CheckedDict):
     registry: Dict[str, ConfigDict] = {}
@@ -382,7 +484,8 @@ class ConfigDict(CheckedDict):
                  docs: Dict[str, str] = None,
                  precallback=None,
                  persistent=True,
-                 load=True) -> None:
+                 load=True,
+                 fmt='yaml') -> None:
         """
         This is a (optionally) persistent, unique dictionary used for configuration
         of a module / app. It is saved under the config folder determined by
@@ -390,35 +493,57 @@ class ConfigDict(CheckedDict):
         config can coexist.
 
         Args:
-            name: a str of the form ``prefix:config`` or ``prefix/config`` or ``prefix.config``
-                (these are the same) or simply ``config`` if this is an
+            name: a str of the form ``prefix.name`` or ``prefix/name``
+                (these are the same) or simply ``name`` if this is an
                 isolated configuration (not part of a bigger project). The
-                json data will be saved at ``$USERCONFIGDIR/folder/{name}.json``
-                For instance, in Linux for name mydir:myconfig this would be:
-                ~/.config/mydir/myconfig.json
+                data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if 
+                prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
+                For instance, in Linux a config with a name "myproj.myconfig" and 
+                a yaml format will be saved to "~/.config/mydir/myconfig.yaml" 
 
             default: a dict with all default values. A config can accept only
-                keys which are already present in the default
+                keys which are already present in the default. This value can be
+                left as None if the config is built successively. See example below
 
-            validator: a dict containing choices and types for the keys in the
+            validator: a dict containing choices, types and/or ranges for the keys in the
                 default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
                 a validator could be:
 
                 {
                   'keyA::choices': ['foo', 'bar'],
-                  'keyB::type': float
+                  'keyB::type': float,
+                  'keyB::range': (10, 30)
                 }
 
                 Choices can be defined lazyly by giving a lambda
+                
+            docs: a dict containing documentation for each key
+            
+            persistent: if True, any change to the dict will be saved. 
+            
+            load: if True, the saved version will be loaded after creation. This is disabled if 
+                no default dict is given. .load should be called manually in this case (see example)
 
             precallback:
                 function (self, key, oldvalue, newvalue) -> None|newvalue,
-                If given, it is called BEFORE the modification is done
-                * return None to allow modification
-                * return any value to modify the value
-                * raise a ValueError exception to stop the transaction
+                If given, it is called BEFORE the modification is done. This function
+                should return:
+                    * None to allow modification
+                    * any value to modify the value
+                    * raise a ValueError exception to stop the transaction
 
         Example:
+            A ConfigDict defined item by item
+
+            config = ConfigDict("myproj.subproj")
+            config.addKey("keyA", 10, doc="documentaion of keyA")
+            config.addKey("keyB", 0.5, range=(0, 1))
+            config.addKey("keyC", "blue", choices=("blue", "red"),
+                          doc="documentation of keyC")
+            config.load()
+
+            # The same effect can be achieved by passing the default/validator/doc 
+
             default = {
                 "keyA": 10,
                 "keyB": 0.5,
@@ -435,19 +560,11 @@ class ConfigDict(CheckedDict):
                 "keyC": "documentation of keyC"
             }
 
-            cfg = ConfigDict("myproj:subproj",
+            cfg = ConfigDict("myproj.subproj",
                              default=default,
                              validator=validator,
                              docs=docs)
-
-            A ConfigDict can also be defined item by item
-
-            config = ConfigDict("myproj:subproj")
-            config.addKey("keyA", 10, doc="documentaion of keyA")
-            config.addKey("keyB", 0.5, range=(0, 1))
-            config.addKey("keyC", "blue", choices=("blue", "red"),
-                          doc="documentation of keyC")
-            config.load()
+            # no need to call .load in this case
 
         """
         if name:
@@ -456,10 +573,12 @@ class ConfigDict(CheckedDict):
                 raise ValueError(f"name {name} is invalid for a config")
         if name in ConfigDict.registry:
             logger.warning("A ConfigDict with the given name already exists!")
+        self.fmt = fmt
+
         cfg = getConfig(name)
         if cfg and default != cfg.default:
-            logger.debug(f"ConfigDict: config with name {name} already created"
-                         "with different defaults. It will be overwritten")
+            logger.warning(f"ConfigDict: config with name {name} already created"
+                           "with different defaults. It will be overwritten")
         super().__init__(default=default,
                          validator=validator,
                          docs=docs,
@@ -467,7 +586,6 @@ class ConfigDict(CheckedDict):
                          precallback=precallback)
         self._name = ''
         self._base = ''
-        self._configfile = ''
         self._persistent = False
         self._configPath = None
         self._callbacks = []
@@ -498,7 +616,6 @@ class ConfigDict(CheckedDict):
         self._name = name
         base, configname = _parseName(name)
         self._base: str = base
-        self._configFile: str = configname+".json"
         self.registry[name] = self
 
     @property
@@ -510,10 +627,14 @@ class ConfigDict(CheckedDict):
         self._persistent = value
         if value:
             if not self._name:
-                raise ValueError("This ConfigDict can't be set to persistent without a name")
+                raise ValueError("A ConfigDict without namecannot be set to persistent")
             self._ensureWritable()
 
     def _mycallback(self, key, value):
+        """
+        own callback used to dispatch to any registered callbacks and save
+        self after any change
+        """
         for pattern, func in self._callbacks:
             if re.match(pattern, key):
                 func(self, key, value)
@@ -521,6 +642,15 @@ class ConfigDict(CheckedDict):
             self.save()
 
     def update(self, d: dict=None, **kws) -> None:
+        """
+        Update this dict with the values in d.
+
+        Args:
+            d: values in this dictionary will overwrite values in self.
+                Keys not present in self will raise an exception
+            **kws: any key:value here will also be used to update self
+
+        """
         if not d or kws:
             return
         kws.update(d)
@@ -538,10 +668,31 @@ class ConfigDict(CheckedDict):
             self.save()
 
     def copy(self) -> ConfigDict:
+        """
+        Create a copy if this ConfigDict. The resulting copy will be unnamed
+        and thus not persistent.
+
+        Returns:
+            the copy of this dict
+        """
         return self.clone(name='', persistent=False, cloneCallbacks=False)
 
     def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=False
               ) -> ConfigDict:
+        """
+        Create a clone of this dict
+
+        Args:
+            name: the name of the clone. If a name is not given, the clone cannot be
+                made persistent
+            persistent: given that this clone has a distinct name, should the clone be
+                made persitent?
+            cloneCallbacks: should the registered callbacks of the original (if any) be
+                also cloned?
+
+        Returns:
+            the cloned dict
+        """
         if name == self._name or name in self.registry:
             raise ValueError(f"name {name} is already taken!")
         out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
@@ -576,18 +727,31 @@ class ConfigDict(CheckedDict):
             os.makedirs(folder)
 
     def reset(self) -> None:
+        """ Reset this dict to its default """
         super().reset()
         self.save()
 
-    def save(self) -> None:
+    def save(self, path:str=None) -> None:
         """
         Normally a config doesn't need to be saved by the user,
         it is saved whenever it is modified.
         """
-        path = self.getPath()
+        if path is None:
+            path = self.getPath()
+            fmt = self.fmt
+        else:
+            fmt = os.path.splitext(path)[1][1:]
+            assert fmt in {'json', 'yaml'}
+
         logger.debug(f"Saving config to {path}")
-        f = open(path, "w")
-        json.dump(self, f, indent=True, sort_keys=True)
+        if fmt is None:
+            fmt = self.fmt
+        if fmt == 'json':
+            with open(path, "w") as f:
+                json.dump(self, f, indent=True, sort_keys=True)
+        elif fmt == 'yaml':
+            yamlstr = self.asYaml()
+            open(path, "w").write(yamlstr)
 
     def dump(self):
         """ Dump this config to stdout """
@@ -623,34 +787,46 @@ class ConfigDict(CheckedDict):
                 lines.extend(doclines)
             for line in lines:
                 rows.append(("", "", line))
-        return header+tabulate.tabulate(rows)
+        return header + tabulate.tabulate(rows)
 
     def getPath(self) -> str:
         """ Return the path this dict will be saved to """
-        if self._configPath is not None:
-            return self._configPath
-        self._configPath = path = configPathFromName(self._name)
-        return path
+        if not self._configPath:
+            self._configPath = configPathFromName(self._name, self.fmt)
+        return self._configPath
 
-    def edit(self, wait_on_modified=False) -> ConfigDict:
+    def edit(self, waitOnModified=False) -> None:
         """
-        Edit (and reload) this config in an external application
+        Edit this config by opening it in an external application. The format
+        used is yaml, because it allows to embed comments. This is independent
+        of the format used for persistence. The application used is the user's
+        default application for the .yaml format and can be configured at the
+        os level. In macos we use `open`, in linux `xdg-open` and in windows
+        `start`, which all respond to the user's own configuration regarding
+        default applications.
+
+        NB: a temporary file is created for editing. The persisted file is only
+        modified if the editing is accepted.
 
         Args:
-            wait_on_modified: if True, we wait until the file is modified.
-                Otherwise the user must click the pop-up dialog to signal
-                that the editing is finished
+            waitOnModified: if True, the transaction is accepted whenever the
+                file being edited is saved. Otherwise a message box is created
+                which needs to be clicked in order to confirm the transaction.
+                Just exiting the application will not cancel the edit job since
+                many applications which have a server mode or unique instance
+                mode might in fact exit right away from the perspective of the
+                subprocess which launched them
         """
-        self.save()
-        _openInEditor(self.getPath())
-        if wait_on_modified:
-            _wait_on_file_modified(self.getPath())
+        configfile = tempfile.mktemp(suffix=".yaml")
+        self.save(configfile)
+        _openInEditor(configfile)
+        if waitOnModified:
+            _waitOnFileModified(configfile)
         else:
-            _waitForClick()
-        self.load()
-        return self
+            _waitForClick(title=self.name)
+        self.load(configfile)
 
-    def load(self) -> None:
+    def load(self, configpath:str=None) -> None:
         """
         Read the saved config, update self. This is used internally but it can be usedful
         if the file is changed externally and no monitoring is activated
@@ -662,7 +838,8 @@ class ConfigDict(CheckedDict):
                 * if saved config is unreadable, raise JSONDecodeError
                 * if saved config not present, raise FileNotFoundError
         """
-        configpath = self.getPath()
+        if configpath is None:
+            configpath = self.getPath()
         if not os.path.exists(configpath):
             if self.default is None:
                 logger.error(
@@ -672,21 +849,27 @@ class ConfigDict(CheckedDict):
             confdict = self.default
         else:
             logger.debug(f"Reading config from disk: {configpath}")
-            try:
-                confdict = json.load(open(configpath))
-                if self.default is None:
-                    raise ValueError("Default config not set")
-            except json.JSONDecodeError:
-                error = sys.exc_info()[0]
-                logger.error(f"Could not read config {configpath}: {error}")
-                if self.default is not None:
-                    logger.debug(
-                            "Couldn't read config. Using default as fallback")
+            if self.default is None:
+                raise ValueError("Default config not set")
+
+            fmt = os.path.splitext(configpath)[1]
+            if fmt == ".json":
+                try:
+                    confdict = json.load(open(configpath))
+                except json.JSONDecodeError:
+                    error = sys.exc_info()[0]
+                    logger.error(f"Could not read config {configpath}: {error}")
+                    logger.debug("Using default as fallback")
                     confdict = self.default
-                else:
-                    logger.error(
-                            "Couldn't read config. No default given, we give up")
-                    raise
+            elif fmt == ".yaml":
+                try:
+                    with open(configpath) as f:
+                        confdict = yaml.load(f, Loader=yaml.SafeLoader)
+                except:
+                    logger.error(f"Could not read config {configpath}")
+                    confdict = self.default
+            else:
+                raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
 
         # only keys in default should be accepted, but keys in the read
         # config should be discarded with a warning
@@ -707,14 +890,24 @@ class ConfigDict(CheckedDict):
         super().update(confdict)
         self._loaded = True
 
+
 def _makeName(configname: str, base: str = None) -> str:
     if base is not None:
-        return f"{base}:{configname}"
+        return f"{base}.{configname}"
     else:
-        return f":{configname}"
+        return f".{configname}"
 
 
 def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Merge readdict into default
+    Args:
+        readdict:
+        default:
+
+    Returns:
+
+    """
     out = {}
     sharedkeys = readdict.keys() & default.keys()
     for key in sharedkeys:
@@ -758,6 +951,9 @@ def _normalizeName(name: str) -> str:
 
 
 def _checkName(name):
+    """
+    check if name is a valid name for a config
+    """
     if not _isValidName(name):
         raise ValueError(
                 f"{name} is not a valid name for a config."
@@ -766,7 +962,10 @@ def _checkName(name):
 
 def getConfig(name: str) -> Opt[ConfigDict]:
     """
-    Retrieve a previously created ConfigDict.
+    Retrieve a previously created ConfigDict. This will NOT load a saved config,
+    since for a ConfigDict to be properly defined a default config must accompany
+    the saved version. In order to load a saved config as default just load it as
+    a normal .yaml or .json file and use that dict as the default.
 
     Args:
         name: the unique id of the configuration, as passed to ConfigDict
@@ -799,11 +998,16 @@ def _removeConfigFromDisk(name: str) -> bool:
     return False
 
 
-def configPathFromName(name: str) -> str:
+def configPathFromName(name: str, fmt='json') -> str:
     name = _normalizeName(name)
     userconfigdir = appdirs.user_config_dir()
     base, configname = _parseName(name)
-    configfile = configname+".json"
+    if fmt == 'json':
+        configfile = configname + ".json"
+    elif fmt == 'yaml':
+        configfile = configname + '.yaml'
+    else:
+        raise ValueError("Formats supported: json, yaml")
     if base is not None:
         configdir = os.path.join(userconfigdir, base)
     else:
