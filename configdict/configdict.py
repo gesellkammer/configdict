@@ -13,7 +13,7 @@ from types import FunctionType
 from typing import (Optional as Opt, Any, Tuple, Dict, Union)
 
 
-__all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs"]
+__all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPathFromName"]
 
 logger = logging.getLogger("configdict")
 
@@ -998,7 +998,18 @@ def _removeConfigFromDisk(name: str) -> bool:
     return False
 
 
-def configPathFromName(name: str, fmt='json') -> str:
+def configPathFromName(name: str, fmt='yaml') -> str:
+    """
+    Given a config name, return the path where it should be saved
+
+    Args:
+        name: the name of this config, with the format [prefix.]name
+        fmt: the format of the config (valid options: json, yaml)
+
+    Returns:
+        the path corresponding to this config name
+
+    """
     name = _normalizeName(name)
     userconfigdir = appdirs.user_config_dir()
     base, configname = _parseName(name)
