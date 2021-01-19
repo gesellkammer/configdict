@@ -1,0 +1,2979 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.2" />
+<title>configdict.configdict API documentation</title>
+<meta name="description" content="CheckedDict …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>configdict.configdict</code></h1>
+</header>
+<section id="section-intro">
+<h2 id="checkeddict">CheckedDict</h2>
+<p>A dictionary based on a default prototype. A CheckedDict can only define
+<code>key:value</code> pairs which are already present in the default. It is possible to
+define a docstring for each key and different restrictions for the values
+regarding possible values, ranges and type. A CheckedDict is useful for
+configuration settings.</p>
+<h2 id="configdict">ConfigDict</h2>
+<p>Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is
+saved under the config folder determined by the OS and it is updated with each
+modification. It is useful for implementing configuration of a module / library
+/ app, where there is a default/initial state and the user needs to be able to
+configure global settings which must be persisted between sessions (similar to
+the settings in an application)</p>
+<h2 id="example">Example</h2>
+<pre><code>config = ConfigDict("myproj.subproj")
+config.addKey("keyA", 10, doc="documentaion of keyA")
+config.addKey("keyB", 0.5, range=(0, 1))
+config.addKey("keyC", "blue", choices=("blue", "red"),
+              doc="documentation of keyC")
+config.load()
+</code></pre>
+<p>Alternatively, a ConfigDict can be created all at once:</p>
+<pre><code>config = ConfigDict("myapp",
+    default = {
+        'font-size': 10.0,
+        'font-family': "Monospace",
+        'port' : 9100,
+    },
+    validator = {
+        'font-size::range' : (8, 24),
+        'port::range' : (9000, 65000),
+        'font-family::choices' : {'Roboto', 'Monospace'},
+    },
+    docs = {
+        'port': 'The port number to listen to',
+        'font-size': 'The size of the font, in pixels'
+    }
+)
+</code></pre>
+<p>This will create the dictionary and load any persisted version. Any saved
+modifications will override the default values. Whenever the user changes any
+value (via <code>config[key] = newvalue</code>) the dictionary will be saved.</p>
+<p>In all other respects a ConfigDict behaves like a normal dictionary.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+## CheckedDict
+
+A dictionary based on a default prototype. A CheckedDict can only define
+``key:value`` pairs which are already present in the default. It is possible to
+define a docstring for each key and different restrictions for the values
+regarding possible values, ranges and type. A CheckedDict is useful for
+configuration settings.
+
+
+## ConfigDict
+
+Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is
+saved under the config folder determined by the OS and it is updated with each
+modification. It is useful for implementing configuration of a module / library
+/ app, where there is a default/initial state and the user needs to be able to
+configure global settings which must be persisted between sessions (similar to
+the settings in an application)
+
+## Example
+
+
+    config = ConfigDict(&#34;myproj.subproj&#34;)
+    config.addKey(&#34;keyA&#34;, 10, doc=&#34;documentaion of keyA&#34;)
+    config.addKey(&#34;keyB&#34;, 0.5, range=(0, 1))
+    config.addKey(&#34;keyC&#34;, &#34;blue&#34;, choices=(&#34;blue&#34;, &#34;red&#34;),
+                  doc=&#34;documentation of keyC&#34;)
+    config.load()
+
+
+Alternatively, a ConfigDict can be created all at once:
+
+
+    config = ConfigDict(&#34;myapp&#34;,
+        default = {
+            &#39;font-size&#39;: 10.0,
+            &#39;font-family&#39;: &#34;Monospace&#34;,
+            &#39;port&#39; : 9100,
+        },
+        validator = {
+            &#39;font-size::range&#39; : (8, 24),
+            &#39;port::range&#39; : (9000, 65000),
+            &#39;font-family::choices&#39; : {&#39;Roboto&#39;, &#39;Monospace&#39;},
+        },
+        docs = {
+            &#39;port&#39;: &#39;The port number to listen to&#39;,
+            &#39;font-size&#39;: &#39;The size of the font, in pixels&#39;
+        }
+    )
+
+
+This will create the dictionary and load any persisted version. Any saved
+modifications will override the default values. Whenever the user changes any
+value (via ``config[key] = newvalue``) the dictionary will be saved.
+
+In all other respects a ConfigDict behaves like a normal dictionary.
+
+&#34;&#34;&#34;
+from __future__ import annotations
+
+import appdirs
+import os
+import json
+import yaml
+import logging
+import sys
+import re
+import textwrap
+import tempfile
+from types import FunctionType
+from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable)
+
+
+__all__ = [&#34;CheckedDict&#34;, &#34;ConfigDict&#34;, &#34;getConfig&#34;, &#34;activeConfigs&#34;, &#34;configPathFromName&#34;]
+
+logger = logging.getLogger(&#34;configdict&#34;)
+
+_UNKNOWN = object()
+
+
+def _yamlComment(doc: Opt[str],
+                 default: Any,
+                 choices: Opt[set],
+                 valuerange: Opt[Tuple[float, float]],
+                 valuetype: Opt[str],
+                 maxwidth=72) -&gt; str:
+    &#34;&#34;&#34;
+    This generated the yaml comments used when saving the config to yaml
+
+    Args:
+        doc: documentation for this key
+        default: the default value
+        choices: choices possible to this value
+        valuerange: a tuplet indicating a valid range for this value
+        valuetype: the type as string
+        maxwidth: the max. width of one line
+
+    Returns:
+        the generated comment as a string. It might contain multiple lines
+    &#34;&#34;&#34;
+    if all(_ is None for _ in (doc, default, choices, valuerange, valuetype)):
+        return &#34;&#34;
+    &#34;&#34;&#34;
+    # this is the documentation for bla
+    # default: xxx, choices: {10, 20, 30}, type: int, range: 0.0 - 1.0
+    &#34;&#34;&#34;
+    lines = []
+    infoparts = []
+    if doc:
+        if len(doc) &lt; maxwidth:
+            lines.append(f&#34;# {doc}&#34;)
+        else:
+            lines.extend(&#34;# &#34; + l for l in textwrap.wrap(doc, maxwidth))
+    if default:
+        infoparts.append(f&#34;default: {default}&#34;)
+    if valuetype:
+        infoparts.append(f&#34;type: {valuetype}&#34;)
+    if choices:
+        infoparts.append(f&#34;choices: {choices}&#34;)
+    if valuerange:
+        infoparts.append(f&#34;range: {valuerange[0]} - {valuerange[1]}&#34;)
+    if infoparts:
+        lines.append(&#34;# ** &#34; + &#34;, &#34;.join(infoparts))
+    return &#34;\n&#34;.join(lines)
+
+
+def _yamlValue(value) -&gt; str:
+    s = yaml.dump(value, default_flow_style=True)
+    return s.replace(&#34;\n...\n&#34;, &#34;&#34;)
+
+
+def _typeName(t: Union[str, type, Tuple[type,...]]) -&gt; str:
+    if isinstance(t, str):
+        return t
+    elif isinstance(t, type):
+        return t.__name__
+    elif isinstance(t, tuple):
+        return &#34; | &#34;.join(v.__name__ for v in t)
+    else:
+        raise TypeError(f&#34;Expected a str, type or tuple of types, got {t}&#34;)
+
+
+def _asYaml(d: Dict[str, Any],
+            doc: Dict[str, str],
+            default: Dict[str, Any],
+            validator: Dict[str, Any]=None,
+            ) -&gt; str:
+    lines = []
+
+    items = list(d.items())
+    items.sort(key=lambda pair: pair[0])
+
+    for key, value in items:
+        choices = validator.get(f&#34;{key}::choices&#34;)
+        valuerange = validator.get(f&#34;{key}::range&#34;)
+        valuetype = validator.get(f&#34;{key}::type&#34;)
+        valuetypestr = type(value).__name__ if valuetype is None else _typeName(valuetype)
+        comment = _yamlComment(doc=doc.get(key), default=default.get(key),
+                               choices=choices, valuerange=valuerange,
+                               valuetype=valuetypestr)
+        lines.append(comment)
+        l = f&#34;{key}: {_yamlValue(value)}&#34;
+        lines.append(l)
+        if not l.endswith(&#34;\n&#34;):
+            lines.append(&#34;&#34;)
+    return &#34;\n&#34;.join(lines)
+
+
+def _checkValidator(validatordict: dict, defaultdict: dict) -&gt; dict:
+    &#34;&#34;&#34;
+    Checks the validity of the validator itself, and makes any needed
+    postprocessing on the validator
+
+    Args:
+        validatordict: the validator dict
+        defaultdict: the dict containing defaults
+
+    Returns:
+        a postprocessed validator dict
+    &#34;&#34;&#34;
+    stripped_keys = {key.split(&#34;::&#34;)[0] for key in validatordict.keys()}
+    not_present = stripped_keys-defaultdict.keys()
+    if any(not_present):
+        notpres = &#34;, &#34;.join(sorted(not_present))
+        raise KeyError(f&#34;The validator dict has keys not present &#34;
+                       f&#34;in the defaultdict ({notpres})&#34;)
+    v = {}
+    for key, value in validatordict.items():
+        if key.endswith(&#39;::choices&#39;) and isinstance(value, (list, tuple)):
+            value = set(value)
+        v[key] = value
+    return v
+
+
+def _isfloaty(value):
+    return isinstance(value, (int, float)) or hasattr(value, &#39;__float__&#39;)
+
+
+def _openInStandardApp(path:str) -&gt; None:
+    &#34;&#34;&#34;
+    Open path with the app defined to handle it by the user
+    at the os level (xdg-open in linux, start in win, open in osx)
+    &#34;&#34;&#34;
+    import subprocess
+    platform = sys.platform
+    if platform == &#39;linux&#39;:
+        subprocess.call([&#34;xdg-open&#34;, path])
+    elif platform == &#34;win32&#34;:
+        os.startfile(path)
+    elif platform == &#34;darwin&#34;:
+        subprocess.call([&#34;open&#34;, path])
+    else:
+        raise RuntimeError(f&#34;platform {platform} not supported&#34;)
+
+
+def _waitOnFileModified(path:str, timeout:float=None) -&gt; bool:
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import PatternMatchingEventHandler
+    except ImportError:
+        logger.info(&#34;watchdog is needed to be able to wait on file events. &#34;
+                    &#34;Install via `pip install watchdog`&#34;)
+        _waitForClick()
+        return False
+        
+
+    directory, base = os.path.split(path)
+    if not directory:
+        directory = &#34;.&#34;
+    handler = PatternMatchingEventHandler([base], ignore_patterns=&#34;&#34;,
+                                          ignore_directories=True, case_sensitive=True)
+    observer = Observer()
+    modified = False
+
+    def on_modified(event):
+        nonlocal modified
+        modified = True
+        observer.stop()
+
+    handler.on_modified = on_modified
+    observer.schedule(handler, path=directory, recursive=False)
+    observer.start()
+    if timeout is None:
+        timeout = 360000  # 100 hours
+    observer.join(timeout)
+    return modified
+
+
+def _showInfoDialog(msg, title=None) -&gt; None:
+    &#34;&#34;&#34;
+    Creates a simple confirmation dialog box
+
+    Args:
+        msg: the message to display
+        title: a title for the window
+    &#34;&#34;&#34;
+    import tkinter as tk
+    from tkinter import messagebox
+    window = tk.Tk()
+    window.wm_withdraw()
+    messagebox.showinfo(title, msg)
+    window.destroy()
+
+
+def _waitForClick(title:str=None):
+    _showInfoDialog(&#34;Click OK when finished editing&#34;, title=title)
+
+
+def _openInEditor(cfg):
+    _openInStandardApp(cfg)
+
+
+
+class CheckedDict(dict):
+    &#34;&#34;&#34;
+    A dictionary which checks that the keys and values are valid
+    according to a default dict and a validator.
+    &#34;&#34;&#34;
+    def __init__(self,
+                 default: Dict[str, Any] = None,
+                 validator: Dict[str, Any] = None,
+                 docs: Dict[str, str] = None,
+                 callback:Callable[[str, Any], None]=None,
+                 precallback=None) -&gt; None:
+        &#34;&#34;&#34;
+
+        Args:
+            default: a dict will all default values. A config can accept only
+                keys which are already present in the default
+
+            validator: a dict containing choices and types for the keys in the
+                default. Given a default like: `{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}`,
+                a validator could be:
+
+                    {&#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],
+                     &#39;keyB::type&#39;: float,
+                     &#39;keyC::range&#39;: (0, 1)
+                    }
+
+                choices can be defined lazyly by giving a lambda which returns a list
+                of possible choices
+
+            docs: a dict containing help lines for keys defined in default
+            callback: function `(key, value) -&gt; None`. This function is called **after**
+                the modification has been done.
+            precallback: function `(key, value) -&gt; None`
+        &#34;&#34;&#34;
+        self.default = default if default else {}
+        self._validator = _checkValidator(validator,
+                                          default) if validator else {}
+        self._docs = docs if docs else {}
+        self._allowedkeys = set(default.keys()) if default else set()
+        self._precallback = precallback
+        self._callback = callback
+
+    def _changed(self):
+        self._allowedkeys = set(self.default.keys())
+
+    def copy(self) -&gt; CheckedDict:
+        out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
+                          precallback=self._precallback, callback=self._callback)
+        return out
+
+    def diff(self) -&gt; dict:
+        &#34;&#34;&#34;
+        Get a dict containing keys:values which differ from default
+        &#34;&#34;&#34;
+        out = {}
+        default = self.default
+        for key, value in self.items():
+            valuedefault = default[key]
+            if value != valuedefault:
+                out[key] = value
+        return out
+
+    def addKey(self,
+               key: str,
+               value: Any,
+               type: Union[type, Tuple[type,...]]=None,
+               choices=None,
+               range: Tuple[Any, Any] = None,
+               doc: str = None) -&gt; None:
+        &#34;&#34;&#34;
+        Add a `key: value` pair to the default settings. This is used when building the
+        default config item by item (see example). After adding all new keys it is
+        necessary to call `.load()`
+
+        ## Example:
+
+
+            cfg = ConfigDict(&#34;foo&#34;, load=False)
+            # We define a default step by step
+            cfg.addKey(&#34;size&#34;, 100, range=(50, 150))
+            cfg.addKey(&#34;color&#34;, &#34;red&#34;, choices=(&#34;read&#34;, &#34;blue&#34;, &#34;green&#34;))
+            # Now update the dict with the newly defined default and any
+            # saved version
+            cfg.load()
+
+        Args:
+            key: a string key
+            value: a default value
+            type: the type accepted, as passed to isinstance (can be a tuple)
+            choices: a seq of possible values
+            range: a (min, max) tuple defining an allowed range for this value
+            doc: documentation for this key
+
+        &#34;&#34;&#34;
+        self.default[key] = value
+        self._allowedkeys.add(key)
+        validator = self._validator
+        if type:
+            validator[f&#34;{key}::type&#34;] = type
+        if choices:
+            validator[f&#34;{key}::choices&#34;] = choices
+        if range:
+            validator[f&#34;{key}::range&#34;] = range
+        if doc:
+            self._docs[key] = doc
+
+    def __setitem__(self, key: str, value) -&gt; None:
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;Unknown key: {key}&#34;)
+        oldvalue = self.get(key)
+        if oldvalue is not None and oldvalue == value:
+            return
+        errormsg = self.checkValue(key, value)
+        if errormsg:
+            raise ValueError(errormsg)
+        if self._precallback:
+            newvalue = self._precallback(self, key, oldvalue, value)
+            if newvalue:
+                value = newvalue
+
+        super().__setitem__(key, value)
+
+        if self._callback is not None:
+            self._callback(key, value)
+
+    def checkDict(self, d: dict) -&gt; str:
+        invalidkeys = [key for key in d if key not in self.default]
+        if invalidkeys:
+            return f&#34;Some keys are not valid: {invalidkeys}&#34;
+        for k, v in d.items():
+            errormsg = self.checkValue(k, v)
+            if errormsg:
+                return errormsg
+        return &#34;&#34;
+
+    def getChoices(self, key: str) -&gt; Opt[list]:
+        &#34;&#34;&#34;
+        Return a seq. of possible values for key `k`
+        or `None`
+        &#34;&#34;&#34;
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;{key} is not a valid key&#34;)
+        if not self._validator:
+            logger.debug(&#34;getChoices: validator not set&#34;)
+            return None
+        key2 = key+&#34;::choices&#34;
+        choices = self._validator.get(key2, None)
+        if isinstance(choices, FunctionType):
+            realchoices = choices()
+            self._validator[key2] = set(realchoices)
+            return realchoices
+        return choices
+
+    def getDoc(self, key: str) -&gt; Opt[str]:
+        &#34;&#34;&#34; Get documentation for key (if present) &#34;&#34;&#34;
+        if self._docs:
+            return self._docs.get(key)
+
+    def checkValue(self, key: str, value) -&gt; Opt[str]:
+        &#34;&#34;&#34;
+        Check if value is valid for key
+
+        Returns errormsg. If value is of correct type, errormsg is None
+
+        ## Example:
+
+
+            error = config.checkType(key, value)
+            if error:
+                print(error)
+        &#34;&#34;&#34;
+        choices = self.getChoices(key)
+        if choices is not None and value not in choices:
+            return f&#34;key {key} should be one of {choices}, got {value}&#34;
+        t = self.getType(key)
+        if t == float:
+            if not _isfloaty(value):
+                return f&#34;Expected floatlike for key {key}, got {type(value).__name__}&#34;
+        elif t == str and not isinstance(value, (bytes, str)):
+            return f&#34;Expected str or bytes for key {key}, got {type(value).__name__}&#34;
+        elif not isinstance(value, t):
+            return f&#34;Expected {t.__name__} for key {key}, got {type(value).__name__}&#34;
+        r = self.getRange(key)
+        if r and not (r[0]&lt;=value&lt;=r[1]):
+            return f&#34;Value for key {key} should be within range {r}, got {value}&#34;
+        return None
+
+    def getRange(self, key: str) -&gt; Opt[tuple]:
+        &#34;&#34;&#34;
+        Returns the valid range for the value corresponding to this key,
+        if it was specified.
+        &#34;&#34;&#34;
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;{key} is not a valid key&#34;)
+        if not self._validator:
+            logger.debug(&#34;getRange: validator not set&#34;)
+            return None
+        return self._validator.get(key+&#34;::range&#34;, None)
+
+    def getType(self, key: str) -&gt; Union[type, Tuple[type,...]]:
+        &#34;&#34;&#34;
+        Returns the expected type for key, as a type which can be passed
+        to isinstance
+
+        **NB**: all numbers are reduced to type float, all strings are of type str,
+            otherwise the type of the default value, which can be a collection
+            like a list or a dict
+
+        See Also: `checkValue`
+        &#34;&#34;&#34;
+        if self._validator is not None:
+            definedtype = self._validator.get(key+&#34;::type&#34;)
+            if definedtype:
+                return definedtype
+            choices = self.getChoices(key)
+            if choices:
+                types = set(type(choice) for choice in choices)
+                if len(types) == 1:
+                    return type(next(iter(choices)))
+                return tuple(types)
+        defaultval = self.default.get(key, _UNKNOWN)
+        if defaultval is _UNKNOWN:
+            raise KeyError(f&#34;Key {key} is not present in default config. &#34;
+                           f&#34;Possible keys: {list(self.default.keys())}&#34;)
+        return str if isinstance(defaultval,
+                                 (bytes, str)) else type(defaultval)
+
+    def getTypestr(self, key: str) -&gt; str:
+        &#34;&#34;&#34;
+        The same as `.getType` but returns a string representation of the type/types
+        possible for the value of this key
+
+        &#34;&#34;&#34;
+        t = self.getType(key)
+        if isinstance(t, tuple):
+            return &#34;(&#34;+&#34;, &#34;.join(x.__name__ for x in t)+&#34;)&#34;
+        else:
+            return t.__name__
+
+    def reset(self) -&gt; None:
+        &#34;&#34;&#34;
+        Resets the config to its default (inplace), and saves it.
+        &#34;&#34;&#34;
+        self.clear()
+        self.update(self.default)
+
+    def update(self, d: dict=None, **kws) -&gt; None:
+        &#34;&#34;&#34;
+        Update ths dict with `d` or any key:value pair passed as keyword
+        &#34;&#34;&#34;
+        if d:
+            errormsg = self.checkDict(d)
+            if errormsg:
+                raise ValueError(f&#34;dict is invalid: {errormsg}&#34;)
+            super().update(d)
+        if kws:
+            errormsg = self.checkDict(kws)
+            if errormsg:
+                raise ValueError(f&#34;invalid keywords: {errormsg}&#34;)
+            super().update(kws)
+
+    def override(self, key: str, value, default=None) -&gt; None:
+        &#34;&#34;&#34;
+        The same as `value if value is not None else config.get(key, default)`
+        &#34;&#34;&#34;
+        return value if value is not None else self.get(key, default)
+
+    def asYaml(self) -&gt; str:
+        &#34;&#34;&#34;
+        Returns this dict as yaml str, with comments, defaults, etc.
+        &#34;&#34;&#34;
+        return _asYaml(self, doc=self._docs, validator=self._validator,
+                       default=self.default)
+
+
+class ConfigDict(CheckedDict):
+    &#34;&#34;&#34;
+    This is a (optionally) persistent, unique dictionary used for configuration
+    of a module / app. It is saved under the config folder determined by
+    the OS (and is thus OS dependent) and no two instances of the same
+    config can coexist.
+    &#34;&#34;&#34;
+    registry: Dict[str, ConfigDict] = {}
+    _helpwidth: int = 58
+
+    def __init__(self,
+                 name: str,
+                 default: Dict[str, Any] = None,
+                 validator: Dict[str, Any] = None,
+                 docs: Dict[str, str] = None,
+                 precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
+                 persistent=True,
+                 load=True,
+                 fmt=&#39;yaml&#39;) -&gt; None:
+        &#34;&#34;&#34;
+        Args:
+            name: a str of the form ``prefix.name`` or ``prefix/name``
+                (these are the same) or simply ``name`` if this is an
+                isolated configuration (not part of a bigger project). The
+                data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if 
+                prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
+                For instance, in Linux a config with a name &#34;myproj.myconfig&#34; and 
+                a yaml format will be saved to &#34;~/.config/mydir/myconfig.yaml&#34; 
+
+            default: a dict with all default values. A config can accept only
+                keys which are already present in the default. This value can be
+                left as None if the config is built successively. See example below
+
+            validator: a dict containing choices, types and/or ranges for the keys in the
+                default. Given a default like: ``{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}``,
+                a validator could be:
+
+
+                    {
+                      &#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],
+                      &#39;keyB::type&#39;: float,
+                      &#39;keyB::range&#39;: (10, 30)
+                    }
+
+
+                Choices can be defined lazyly by giving a lambda
+                
+            docs: a dict containing documentation for each key
+            
+            persistent: if True, any change to the dict will be saved. 
+            
+            load: if True, the saved version will be loaded after creation. This is disabled if 
+                no default dict is given. .load should be called manually in this case (see example)
+
+            precallback: function `(dict, key, oldvalue, newvalue) -&gt; None|newvalue`,
+                If given, it is called *before* the modification is done. This function
+                should return **None** to allow modification, **any value** to modify the value, or
+                **raise ValueError** to stop the transaction
+
+        ## Example:
+
+
+            config = ConfigDict(&#34;myproj.subproj&#34;)
+            config.addKey(&#34;keyA&#34;, 10, doc=&#34;documentaion of keyA&#34;)
+            config.addKey(&#34;keyB&#34;, 0.5, range=(0, 1))
+            config.addKey(&#34;keyC&#34;, &#34;blue&#34;, choices=(&#34;blue&#34;, &#34;red&#34;),
+                          doc=&#34;documentation of keyC&#34;)
+            config.load()
+
+            # The same effect can be achieved by passing the default/validator/doc 
+
+            default = {
+                &#34;keyA&#34;: 10,
+                &#34;keyB&#34;: 0.5,
+                &#34;keyC&#34;: &#34;blue
+            }
+
+            validator = {
+                &#34;keyB::range&#34;: (0, 1),
+                &#34;keyC::choices&#34;: (&#34;blue&#34;, &#34;red&#34;)
+            }
+
+            docs = {
+                &#34;keyA&#34;: &#34;documentation of keyA&#34;
+                &#34;keyC&#34;: &#34;documentation of keyC&#34;
+            }
+
+            cfg = ConfigDict(&#34;myproj.subproj&#34;,
+                             default=default,
+                             validator=validator,
+                             docs=docs)
+            # no need to call .load in this case
+
+        &#34;&#34;&#34;
+        if name:
+            name = _normalizeName(name)
+            if not _isValidName(name):
+                raise ValueError(f&#34;name {name} is invalid for a config&#34;)
+        if name in ConfigDict.registry:
+            logger.warning(&#34;A ConfigDict with the given name already exists!&#34;)
+        self.fmt = fmt
+
+        cfg = getConfig(name)
+        if cfg and default != cfg.default:
+            logger.warning(f&#34;ConfigDict: config with name {name} already created&#34;
+                           &#34;with different defaults. It will be overwritten&#34;)
+        super().__init__(default=default,
+                         validator=validator,
+                         docs=docs,
+                         callback=self._mycallback,
+                         precallback=precallback)
+        self._name = &#39;&#39;
+        self._base = &#39;&#39;
+        self._persistent = False
+        self._configPath = None
+        self._callbacks = []
+        self._loaded = False
+
+        if name:
+            self.name = name
+        else:
+            persistent = False
+            load = False
+
+        self.persistent = persistent
+
+        if default is not None and load:
+            self.load()
+
+    @property
+    def name(self) -&gt; Opt[str]:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -&gt; None:
+        if self._name:
+            raise ValueError(&#34;Name has already been set&#34;)
+
+        if name and name in self.registry:
+            raise ValueError(f&#34;Name {name} is already used&#34;)
+        self._name = name
+        base, configname = _parseName(name)
+        self._base: str = base
+        self.registry[name] = self
+
+    @property
+    def persistent(self) -&gt; bool:
+        return self._persistent
+
+    @persistent.setter
+    def persistent(self, value) -&gt; None:
+        self._persistent = value
+        if value:
+            if not self._name:
+                raise ValueError(&#34;A ConfigDict without namecannot be set to persistent&#34;)
+            self._ensureWritable()
+
+    def _mycallback(self, key, value):
+        &#34;&#34;&#34;
+        own callback used to dispatch to any registered callbacks and save
+        self after any change
+        &#34;&#34;&#34;
+        for pattern, func in self._callbacks:
+            if re.match(pattern, key):
+                func(self, key, value)
+        if self._persistent:
+            self.save()
+
+    def update(self, d: dict=None, **kws) -&gt; None:
+        &#34;&#34;&#34;
+        Update this dict with the values in d.
+
+        Args:
+            d: values in this dictionary will overwrite values in self.
+                Keys not present in self will raise an exception
+            **kws: any key:value here will also be used to update self
+
+        &#34;&#34;&#34;
+        if not d or kws:
+            return
+        kws.update(d)
+        errormsg = self.checkDict(kws)
+        if errormsg:
+            logger.error(f&#34;ConfigDict: {errormsg}&#34;)
+            logger.error(
+                    f&#34;Reset the dict to a default by removing the file &#39;{self.getPath()}&#39;&#34;
+            )
+            raise ValueError(&#34;dict is invalid&#34;)
+        self._persistent, persistent = False, self._persistent
+        super().update(kws)
+        self._persistent = persistent
+        if persistent:
+            self.save()
+
+    def copy(self) -&gt; ConfigDict:
+        &#34;&#34;&#34;
+        Create a copy if this ConfigDict. The resulting copy will be unnamed
+        and thus not persistent.
+
+        Returns:
+            the copy of this dict
+        &#34;&#34;&#34;
+        return self.clone(name=&#39;&#39;, persistent=False, cloneCallbacks=False)
+
+    def clone(self, name: str = &#39;&#39;, persistent: bool=None, cloneCallbacks=False
+              ) -&gt; ConfigDict:
+        &#34;&#34;&#34;
+        Create a clone of this dict
+
+        Args:
+            name: the name of the clone. If a name is not given, the clone cannot be
+                made persistent
+            persistent: given that this clone has a distinct name, should the clone be
+                made persitent?
+            cloneCallbacks: should the registered callbacks of the original (if any) be
+                also cloned?
+
+        Returns:
+            the cloned dict
+        &#34;&#34;&#34;
+        if name == self._name or name in self.registry:
+            raise ValueError(f&#34;name {name} is already taken!&#34;)
+        out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
+                         persistent=False, load=False, name=name)
+        out.update(self)
+        if name and persistent:
+            out._persistent = True
+        if cloneCallbacks and self._callbacks:
+            for pattern, func in self._callbacks:
+                out.registerCallback(func, pattern)
+        return out
+
+    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Register a callback to be fired when a key matching the given pattern is
+        changed. If no pattern is given, the function will be called for
+        every key.
+
+        Args:
+            func: a function of the form ``(dict, key, value) -&gt; None``, where *dict* is
+                this ConfigDict itself, *key* is the key which was just changed and *value*
+                is the new value.
+
+            pattern: call func when pattern matches key.
+
+        &#34;&#34;&#34;
+        self._callbacks.append((pattern or r&#34;.*&#34;, func))
+
+    def _ensureWritable(self) -&gt; None:
+        &#34;&#34;&#34; Make sure that we can serialize this dict to disk &#34;&#34;&#34;
+        folder, _ = os.path.split(self.getPath())
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+    def reset(self) -&gt; None:
+        &#34;&#34;&#34; Reset this dict to its default &#34;&#34;&#34;
+        super().reset()
+        self.save()
+
+    def save(self, path:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Normally a config doesn&#39;t need to be saved by the user,
+        it is saved whenever it is modified.
+        &#34;&#34;&#34;
+        if path is None:
+            path = self.getPath()
+            fmt = self.fmt
+        else:
+            fmt = os.path.splitext(path)[1][1:]
+            assert fmt in {&#39;json&#39;, &#39;yaml&#39;}
+
+        logger.debug(f&#34;Saving config to {path}&#34;)
+        if fmt is None:
+            fmt = self.fmt
+        if fmt == &#39;json&#39;:
+            with open(path, &#34;w&#34;) as f:
+                json.dump(self, f, indent=True, sort_keys=True)
+        elif fmt == &#39;yaml&#39;:
+            yamlstr = self.asYaml()
+            open(path, &#34;w&#34;).write(yamlstr)
+
+    def dump(self):
+        &#34;&#34;&#34; Dump this config to stdout &#34;&#34;&#34;
+        print(str(self))
+
+    def __str__(self) -&gt; str:
+        import tabulate
+        header = f&#34;Config: {self._name}\n&#34;
+        rows = []
+        keys = sorted(self.keys())
+        for k in keys:
+            v = self[k]
+            info = []
+            lines = []
+            choices = self.getChoices(k)
+            if choices:
+                choicestr = &#34;, &#34;.join(str(ch) for ch in choices)
+                if len(choicestr)&gt;self._helpwidth:
+                    choiceslines = textwrap.wrap(choicestr, self._helpwidth)
+                    lines.extend(choiceslines)
+                else:
+                    info.append(choicestr)
+            keyrange = self.getRange(k)
+            if keyrange:
+                info.append(f&#34;between {keyrange}&#34;)
+            typestr = self.getTypestr(k)
+            info.append(typestr)
+            valuestr = str(v)
+            rows.append((k, valuestr, &#34; | &#34;.join(info)))
+            doc = self.getDoc(k)
+            if doc:
+                doclines = textwrap.wrap(doc, self._helpwidth)
+                lines.extend(doclines)
+            for line in lines:
+                rows.append((&#34;&#34;, &#34;&#34;, line))
+        return header + tabulate.tabulate(rows)
+
+    def getPath(self) -&gt; str:
+        &#34;&#34;&#34; Return the path this dict will be saved to &#34;&#34;&#34;
+        if not self._configPath:
+            self._configPath = configPathFromName(self._name, self.fmt)
+        return self._configPath
+
+    def edit(self, waitOnModified=False) -&gt; None:
+        &#34;&#34;&#34;
+        Edit this config by opening it in an external application. The format
+        used is *yaml*, because it allows to embed comments. This is independent
+        of the format used for persistence. The application used is the user&#39;s
+        default application for the .yaml format and can be configured at the
+        os level. In macos we use `open`, in linux `xdg-open` and in windows
+        `start`, which all respond to the user&#39;s own configuration regarding
+        default applications.
+
+        NB: a temporary file is created for editing. The persisted file is only
+        modified if the editing is accepted.
+
+        Args:
+            waitOnModified: if True, the transaction is accepted whenever the
+                file being edited is saved. Otherwise a message box is created
+                which needs to be clicked in order to confirm the transaction.
+                Just exiting the application will not cancel the edit job since
+                many applications which have a server mode or unique instance
+                mode might in fact exit right away from the perspective of the
+                subprocess which launched them
+        &#34;&#34;&#34;
+        configfile = tempfile.mktemp(suffix=&#34;.yaml&#34;)
+        self.save(configfile)
+        _openInEditor(configfile)
+        if waitOnModified:
+            _waitOnFileModified(configfile)
+        else:
+            _waitForClick(title=self.name)
+        self.load(configfile)
+
+    def load(self, configpath:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Read the saved config, update self.
+        &#34;&#34;&#34;
+        if configpath is None:
+            configpath = self.getPath()
+        if not os.path.exists(configpath):
+            if self.default is None:
+                logger.error(
+                        &#34;No written config found, but default was not set&#34;)
+                raise FileNotFoundError(f&#34;{configpath} not found&#34;)
+            logger.debug(&#34;Using default config&#34;)
+            confdict = self.default
+        else:
+            logger.debug(f&#34;Reading config from disk: {configpath}&#34;)
+            if self.default is None:
+                raise ValueError(&#34;Default config not set&#34;)
+
+            fmt = os.path.splitext(configpath)[1]
+            if fmt == &#34;.json&#34;:
+                try:
+                    confdict = json.load(open(configpath))
+                except json.JSONDecodeError:
+                    error = sys.exc_info()[0]
+                    logger.error(f&#34;Could not read config {configpath}: {error}&#34;)
+                    logger.debug(&#34;Using default as fallback&#34;)
+                    confdict = self.default
+            elif fmt == &#34;.yaml&#34;:
+                try:
+                    with open(configpath) as f:
+                        confdict = yaml.load(f, Loader=yaml.SafeLoader)
+                except:
+                    logger.error(f&#34;Could not read config {configpath}&#34;)
+                    confdict = self.default
+            else:
+                raise ValueError(f&#34;format {fmt} unknown, supported formats: json, yaml&#34;)
+
+        # only keys in default should be accepted, but keys in the read
+        # config should be discarded with a warning
+        keysOnlyInRead = confdict.keys()-self.default.keys()
+        if keysOnlyInRead:
+            logger.warning(f&#34;ConfigDict {self._name}, saved at {configpath}&#34;)
+            logger.warning(
+                    &#34;There are keys defined in the saved&#34;
+                    &#34; config which are not present in the default config. They will&#34;
+                    &#34; be skipped:&#34;)
+            logger.warning(f&#34;   {keysOnlyInRead}&#34;)
+
+        # merge strategy:
+        # * if a key is shared between default and read dict, read dict has priority
+        # * if a key is present only in default, it is added
+        confdict = _mergeDicts(confdict, self.default)
+        self.checkDict(confdict)
+        super().update(confdict)
+        self._loaded = True
+
+
+def _makeName(configname: str, base: str = None) -&gt; str:
+    if base is not None:
+        return f&#34;{base}.{configname}&#34;
+    else:
+        return f&#34;.{configname}&#34;
+
+
+def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -&gt; Dict[str, Any]:
+    &#34;&#34;&#34;
+    Merge readdict into default
+    Args:
+        readdict:
+        default:
+
+    Returns:
+
+    &#34;&#34;&#34;
+    out = {}
+    sharedkeys = readdict.keys() &amp; default.keys()
+    for key in sharedkeys:
+        out[key] = readdict[key]
+    onlyInDefault = default.keys() - readdict.keys()
+    for key in onlyInDefault:
+        out[key] = default[key]
+    return out
+
+
+def _parseName(name: str) -&gt; Tuple[str, Opt[str]]:
+    &#34;&#34;&#34;
+    Returns (configname, base) (which can be None)
+    &#34;&#34;&#34;
+    if &#34;:&#34; not in name:
+        base = None
+        configname = name
+    else:
+        base, *rest = name.split(&#34;:&#34;)
+        configname = &#34;.&#34;.join(rest)
+        if not base:
+            base = None
+    return base, configname
+
+
+def _isValidName(name: str) -&gt; bool:
+    return re.fullmatch(r&#34;[a-zA-Z0-9\.\:_]+&#34;, name) is not None
+
+
+def _normalizeName(name: str) -&gt; str:
+    &#34;&#34;&#34;
+    Originally a name would be of the form project:name,
+    later on we enabled / and . to act as path separator
+
+    &#34;&#34;&#34;
+    if &#34;/&#34; in name:
+        return name.replace(&#34;/&#34;, &#34;:&#34;)
+    elif &#34;.&#34; in name:
+        return name.replace(&#34;.&#34;, &#34;:&#34;)
+    return name
+
+
+def _checkName(name):
+    &#34;&#34;&#34;
+    check if name is a valid name for a config
+    &#34;&#34;&#34;
+    if not _isValidName(name):
+        raise ValueError(
+                f&#34;{name} is not a valid name for a config.&#34;
+                &#34; It should contain letters, numbers and any of &#39;.&#39;, &#39;_&#39;, &#39;:&#39;&#34;)
+
+
+def getConfig(name: str) -&gt; Opt[ConfigDict]:
+    &#34;&#34;&#34;
+    Retrieve a previously created ConfigDict. This will NOT load a saved config,
+    since for a ConfigDict to be properly defined a default config must accompany
+    the saved version. In order to load a saved config as default just load it as
+    a normal .yaml or .json file and use that dict as the default.
+
+    Args:
+        name: the unique id of the configuration, as passed to ConfigDict
+
+    Returns:
+        the ConfigDict, if found. None otherwise.
+
+    &#34;&#34;&#34;
+    name = _normalizeName(name)
+    _checkName(name)
+    return ConfigDict.registry.get(name)
+
+
+def activeConfigs() -&gt; Dict[str, ConfigDict]:
+    &#34;&#34;&#34;
+    Returns a dict of active configs
+    &#34;&#34;&#34;
+    return ConfigDict.registry.copy()
+
+
+def _removeConfigFromDisk(name: str) -&gt; bool:
+    &#34;&#34;&#34;
+    Remove the given config from disc, returns True if it was found and removed,
+    False otherwise
+    &#34;&#34;&#34;
+    configpath = configPathFromName(name)
+    if os.path.exists(configpath):
+        os.remove(configpath)
+        return True
+    return False
+
+
+def configPathFromName(name: str, fmt=&#39;yaml&#39;) -&gt; str:
+    &#34;&#34;&#34;
+    Given a config name, return the path where it should be saved
+
+    Args:
+        name: the name of this config, with the format [prefix.]name
+        fmt: the format of the config (valid options: json, yaml)
+
+    Returns:
+        the path corresponding to this config name
+
+    &#34;&#34;&#34;
+    name = _normalizeName(name)
+    userconfigdir = appdirs.user_config_dir()
+    base, configname = _parseName(name)
+    if fmt == &#39;json&#39;:
+        configfile = configname + &#34;.json&#34;
+    elif fmt == &#39;yaml&#39;:
+        configfile = configname + &#39;.yaml&#39;
+    else:
+        raise ValueError(&#34;Formats supported: json, yaml&#34;)
+    if base is not None:
+        configdir = os.path.join(userconfigdir, base)
+    else:
+        configdir = userconfigdir
+    return os.path.join(configdir, configfile)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="configdict.configdict.activeConfigs"><code class="name flex">
+<span>def <span class="ident">activeConfigs</span></span>(<span>) ‑> Dict[str, <a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns a dict of active configs</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def activeConfigs() -&gt; Dict[str, ConfigDict]:
+    &#34;&#34;&#34;
+    Returns a dict of active configs
+    &#34;&#34;&#34;
+    return ConfigDict.registry.copy()</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.configPathFromName"><code class="name flex">
+<span>def <span class="ident">configPathFromName</span></span>(<span>name: str, fmt='yaml') ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Given a config name, return the path where it should be saved</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>the name of this config, with the format [prefix.]name</dd>
+<dt><strong><code>fmt</code></strong></dt>
+<dd>the format of the config (valid options: json, yaml)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>the path corresponding to this config name</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def configPathFromName(name: str, fmt=&#39;yaml&#39;) -&gt; str:
+    &#34;&#34;&#34;
+    Given a config name, return the path where it should be saved
+
+    Args:
+        name: the name of this config, with the format [prefix.]name
+        fmt: the format of the config (valid options: json, yaml)
+
+    Returns:
+        the path corresponding to this config name
+
+    &#34;&#34;&#34;
+    name = _normalizeName(name)
+    userconfigdir = appdirs.user_config_dir()
+    base, configname = _parseName(name)
+    if fmt == &#39;json&#39;:
+        configfile = configname + &#34;.json&#34;
+    elif fmt == &#39;yaml&#39;:
+        configfile = configname + &#39;.yaml&#39;
+    else:
+        raise ValueError(&#34;Formats supported: json, yaml&#34;)
+    if base is not None:
+        configdir = os.path.join(userconfigdir, base)
+    else:
+        configdir = userconfigdir
+    return os.path.join(configdir, configfile)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.getConfig"><code class="name flex">
+<span>def <span class="ident">getConfig</span></span>(<span>name: str) ‑> Optional[<a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a>]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Retrieve a previously created ConfigDict. This will NOT load a saved config,
+since for a ConfigDict to be properly defined a default config must accompany
+the saved version. In order to load a saved config as default just load it as
+a normal .yaml or .json file and use that dict as the default.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>the unique id of the configuration, as passed to ConfigDict</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>the ConfigDict, if found. None otherwise.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getConfig(name: str) -&gt; Opt[ConfigDict]:
+    &#34;&#34;&#34;
+    Retrieve a previously created ConfigDict. This will NOT load a saved config,
+    since for a ConfigDict to be properly defined a default config must accompany
+    the saved version. In order to load a saved config as default just load it as
+    a normal .yaml or .json file and use that dict as the default.
+
+    Args:
+        name: the unique id of the configuration, as passed to ConfigDict
+
+    Returns:
+        the ConfigDict, if found. None otherwise.
+
+    &#34;&#34;&#34;
+    name = _normalizeName(name)
+    _checkName(name)
+    return ConfigDict.registry.get(name)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="configdict.configdict.CheckedDict"><code class="flex name class">
+<span>class <span class="ident">CheckedDict</span></span>
+<span>(</span><span>default: Dict[str, Any] = None, validator: Dict[str, Any] = None, docs: Dict[str, str] = None, callback: Callable[[str, Any], None] = None, precallback=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A dictionary which checks that the keys and values are valid
+according to a default dict and a validator.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>default</code></strong></dt>
+<dd>a dict will all default values. A config can accept only
+keys which are already present in the default</dd>
+<dt><strong><code>validator</code></strong></dt>
+<dd>
+<p>a dict containing choices and types for the keys in the
+default. Given a default like: <code>{'keyA': 'foo', 'keyB': 20}</code>,
+a validator could be:</p>
+<pre><code>{'keyA::choices': ['foo', 'bar'],
+ 'keyB::type': float,
+ 'keyC::range': (0, 1)
+}
+</code></pre>
+<p>choices can be defined lazyly by giving a lambda which returns a list
+of possible choices</p>
+</dd>
+<dt><strong><code>docs</code></strong></dt>
+<dd>a dict containing help lines for keys defined in default</dd>
+<dt><strong><code>callback</code></strong></dt>
+<dd>function <code>(key, value) -&gt; None</code>. This function is called <strong>after</strong>
+the modification has been done.</dd>
+<dt><strong><code>precallback</code></strong></dt>
+<dd>function <code>(key, value) -&gt; None</code></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CheckedDict(dict):
+    &#34;&#34;&#34;
+    A dictionary which checks that the keys and values are valid
+    according to a default dict and a validator.
+    &#34;&#34;&#34;
+    def __init__(self,
+                 default: Dict[str, Any] = None,
+                 validator: Dict[str, Any] = None,
+                 docs: Dict[str, str] = None,
+                 callback:Callable[[str, Any], None]=None,
+                 precallback=None) -&gt; None:
+        &#34;&#34;&#34;
+
+        Args:
+            default: a dict will all default values. A config can accept only
+                keys which are already present in the default
+
+            validator: a dict containing choices and types for the keys in the
+                default. Given a default like: `{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}`,
+                a validator could be:
+
+                    {&#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],
+                     &#39;keyB::type&#39;: float,
+                     &#39;keyC::range&#39;: (0, 1)
+                    }
+
+                choices can be defined lazyly by giving a lambda which returns a list
+                of possible choices
+
+            docs: a dict containing help lines for keys defined in default
+            callback: function `(key, value) -&gt; None`. This function is called **after**
+                the modification has been done.
+            precallback: function `(key, value) -&gt; None`
+        &#34;&#34;&#34;
+        self.default = default if default else {}
+        self._validator = _checkValidator(validator,
+                                          default) if validator else {}
+        self._docs = docs if docs else {}
+        self._allowedkeys = set(default.keys()) if default else set()
+        self._precallback = precallback
+        self._callback = callback
+
+    def _changed(self):
+        self._allowedkeys = set(self.default.keys())
+
+    def copy(self) -&gt; CheckedDict:
+        out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
+                          precallback=self._precallback, callback=self._callback)
+        return out
+
+    def diff(self) -&gt; dict:
+        &#34;&#34;&#34;
+        Get a dict containing keys:values which differ from default
+        &#34;&#34;&#34;
+        out = {}
+        default = self.default
+        for key, value in self.items():
+            valuedefault = default[key]
+            if value != valuedefault:
+                out[key] = value
+        return out
+
+    def addKey(self,
+               key: str,
+               value: Any,
+               type: Union[type, Tuple[type,...]]=None,
+               choices=None,
+               range: Tuple[Any, Any] = None,
+               doc: str = None) -&gt; None:
+        &#34;&#34;&#34;
+        Add a `key: value` pair to the default settings. This is used when building the
+        default config item by item (see example). After adding all new keys it is
+        necessary to call `.load()`
+
+        ## Example:
+
+
+            cfg = ConfigDict(&#34;foo&#34;, load=False)
+            # We define a default step by step
+            cfg.addKey(&#34;size&#34;, 100, range=(50, 150))
+            cfg.addKey(&#34;color&#34;, &#34;red&#34;, choices=(&#34;read&#34;, &#34;blue&#34;, &#34;green&#34;))
+            # Now update the dict with the newly defined default and any
+            # saved version
+            cfg.load()
+
+        Args:
+            key: a string key
+            value: a default value
+            type: the type accepted, as passed to isinstance (can be a tuple)
+            choices: a seq of possible values
+            range: a (min, max) tuple defining an allowed range for this value
+            doc: documentation for this key
+
+        &#34;&#34;&#34;
+        self.default[key] = value
+        self._allowedkeys.add(key)
+        validator = self._validator
+        if type:
+            validator[f&#34;{key}::type&#34;] = type
+        if choices:
+            validator[f&#34;{key}::choices&#34;] = choices
+        if range:
+            validator[f&#34;{key}::range&#34;] = range
+        if doc:
+            self._docs[key] = doc
+
+    def __setitem__(self, key: str, value) -&gt; None:
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;Unknown key: {key}&#34;)
+        oldvalue = self.get(key)
+        if oldvalue is not None and oldvalue == value:
+            return
+        errormsg = self.checkValue(key, value)
+        if errormsg:
+            raise ValueError(errormsg)
+        if self._precallback:
+            newvalue = self._precallback(self, key, oldvalue, value)
+            if newvalue:
+                value = newvalue
+
+        super().__setitem__(key, value)
+
+        if self._callback is not None:
+            self._callback(key, value)
+
+    def checkDict(self, d: dict) -&gt; str:
+        invalidkeys = [key for key in d if key not in self.default]
+        if invalidkeys:
+            return f&#34;Some keys are not valid: {invalidkeys}&#34;
+        for k, v in d.items():
+            errormsg = self.checkValue(k, v)
+            if errormsg:
+                return errormsg
+        return &#34;&#34;
+
+    def getChoices(self, key: str) -&gt; Opt[list]:
+        &#34;&#34;&#34;
+        Return a seq. of possible values for key `k`
+        or `None`
+        &#34;&#34;&#34;
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;{key} is not a valid key&#34;)
+        if not self._validator:
+            logger.debug(&#34;getChoices: validator not set&#34;)
+            return None
+        key2 = key+&#34;::choices&#34;
+        choices = self._validator.get(key2, None)
+        if isinstance(choices, FunctionType):
+            realchoices = choices()
+            self._validator[key2] = set(realchoices)
+            return realchoices
+        return choices
+
+    def getDoc(self, key: str) -&gt; Opt[str]:
+        &#34;&#34;&#34; Get documentation for key (if present) &#34;&#34;&#34;
+        if self._docs:
+            return self._docs.get(key)
+
+    def checkValue(self, key: str, value) -&gt; Opt[str]:
+        &#34;&#34;&#34;
+        Check if value is valid for key
+
+        Returns errormsg. If value is of correct type, errormsg is None
+
+        ## Example:
+
+
+            error = config.checkType(key, value)
+            if error:
+                print(error)
+        &#34;&#34;&#34;
+        choices = self.getChoices(key)
+        if choices is not None and value not in choices:
+            return f&#34;key {key} should be one of {choices}, got {value}&#34;
+        t = self.getType(key)
+        if t == float:
+            if not _isfloaty(value):
+                return f&#34;Expected floatlike for key {key}, got {type(value).__name__}&#34;
+        elif t == str and not isinstance(value, (bytes, str)):
+            return f&#34;Expected str or bytes for key {key}, got {type(value).__name__}&#34;
+        elif not isinstance(value, t):
+            return f&#34;Expected {t.__name__} for key {key}, got {type(value).__name__}&#34;
+        r = self.getRange(key)
+        if r and not (r[0]&lt;=value&lt;=r[1]):
+            return f&#34;Value for key {key} should be within range {r}, got {value}&#34;
+        return None
+
+    def getRange(self, key: str) -&gt; Opt[tuple]:
+        &#34;&#34;&#34;
+        Returns the valid range for the value corresponding to this key,
+        if it was specified.
+        &#34;&#34;&#34;
+        if key not in self._allowedkeys:
+            raise KeyError(f&#34;{key} is not a valid key&#34;)
+        if not self._validator:
+            logger.debug(&#34;getRange: validator not set&#34;)
+            return None
+        return self._validator.get(key+&#34;::range&#34;, None)
+
+    def getType(self, key: str) -&gt; Union[type, Tuple[type,...]]:
+        &#34;&#34;&#34;
+        Returns the expected type for key, as a type which can be passed
+        to isinstance
+
+        **NB**: all numbers are reduced to type float, all strings are of type str,
+            otherwise the type of the default value, which can be a collection
+            like a list or a dict
+
+        See Also: `checkValue`
+        &#34;&#34;&#34;
+        if self._validator is not None:
+            definedtype = self._validator.get(key+&#34;::type&#34;)
+            if definedtype:
+                return definedtype
+            choices = self.getChoices(key)
+            if choices:
+                types = set(type(choice) for choice in choices)
+                if len(types) == 1:
+                    return type(next(iter(choices)))
+                return tuple(types)
+        defaultval = self.default.get(key, _UNKNOWN)
+        if defaultval is _UNKNOWN:
+            raise KeyError(f&#34;Key {key} is not present in default config. &#34;
+                           f&#34;Possible keys: {list(self.default.keys())}&#34;)
+        return str if isinstance(defaultval,
+                                 (bytes, str)) else type(defaultval)
+
+    def getTypestr(self, key: str) -&gt; str:
+        &#34;&#34;&#34;
+        The same as `.getType` but returns a string representation of the type/types
+        possible for the value of this key
+
+        &#34;&#34;&#34;
+        t = self.getType(key)
+        if isinstance(t, tuple):
+            return &#34;(&#34;+&#34;, &#34;.join(x.__name__ for x in t)+&#34;)&#34;
+        else:
+            return t.__name__
+
+    def reset(self) -&gt; None:
+        &#34;&#34;&#34;
+        Resets the config to its default (inplace), and saves it.
+        &#34;&#34;&#34;
+        self.clear()
+        self.update(self.default)
+
+    def update(self, d: dict=None, **kws) -&gt; None:
+        &#34;&#34;&#34;
+        Update ths dict with `d` or any key:value pair passed as keyword
+        &#34;&#34;&#34;
+        if d:
+            errormsg = self.checkDict(d)
+            if errormsg:
+                raise ValueError(f&#34;dict is invalid: {errormsg}&#34;)
+            super().update(d)
+        if kws:
+            errormsg = self.checkDict(kws)
+            if errormsg:
+                raise ValueError(f&#34;invalid keywords: {errormsg}&#34;)
+            super().update(kws)
+
+    def override(self, key: str, value, default=None) -&gt; None:
+        &#34;&#34;&#34;
+        The same as `value if value is not None else config.get(key, default)`
+        &#34;&#34;&#34;
+        return value if value is not None else self.get(key, default)
+
+    def asYaml(self) -&gt; str:
+        &#34;&#34;&#34;
+        Returns this dict as yaml str, with comments, defaults, etc.
+        &#34;&#34;&#34;
+        return _asYaml(self, doc=self._docs, validator=self._validator,
+                       default=self.default)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.dict</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="configdict.configdict.CheckedDict.addKey"><code class="name flex">
+<span>def <span class="ident">addKey</span></span>(<span>self, key: str, value: Any, type: Union[type, Tuple[type, ...]] = None, choices=None, range: Tuple[Any, Any] = None, doc: str = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add a <code>key: value</code> pair to the default settings. This is used when building the
+default config item by item (see example). After adding all new keys it is
+necessary to call <code>.load()</code></p>
+<h2 id="example">Example:</h2>
+<pre><code>cfg = ConfigDict("foo", load=False)
+# We define a default step by step
+cfg.addKey("size", 100, range=(50, 150))
+cfg.addKey("color", "red", choices=("read", "blue", "green"))
+# Now update the dict with the newly defined default and any
+# saved version
+cfg.load()
+</code></pre>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong></dt>
+<dd>a string key</dd>
+<dt><strong><code>value</code></strong></dt>
+<dd>a default value</dd>
+<dt><strong><code>type</code></strong></dt>
+<dd>the type accepted, as passed to isinstance (can be a tuple)</dd>
+<dt><strong><code>choices</code></strong></dt>
+<dd>a seq of possible values</dd>
+<dt><strong><code>range</code></strong></dt>
+<dd>a (min, max) tuple defining an allowed range for this value</dd>
+<dt><strong><code>doc</code></strong></dt>
+<dd>documentation for this key</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def addKey(self,
+           key: str,
+           value: Any,
+           type: Union[type, Tuple[type,...]]=None,
+           choices=None,
+           range: Tuple[Any, Any] = None,
+           doc: str = None) -&gt; None:
+    &#34;&#34;&#34;
+    Add a `key: value` pair to the default settings. This is used when building the
+    default config item by item (see example). After adding all new keys it is
+    necessary to call `.load()`
+
+    ## Example:
+
+
+        cfg = ConfigDict(&#34;foo&#34;, load=False)
+        # We define a default step by step
+        cfg.addKey(&#34;size&#34;, 100, range=(50, 150))
+        cfg.addKey(&#34;color&#34;, &#34;red&#34;, choices=(&#34;read&#34;, &#34;blue&#34;, &#34;green&#34;))
+        # Now update the dict with the newly defined default and any
+        # saved version
+        cfg.load()
+
+    Args:
+        key: a string key
+        value: a default value
+        type: the type accepted, as passed to isinstance (can be a tuple)
+        choices: a seq of possible values
+        range: a (min, max) tuple defining an allowed range for this value
+        doc: documentation for this key
+
+    &#34;&#34;&#34;
+    self.default[key] = value
+    self._allowedkeys.add(key)
+    validator = self._validator
+    if type:
+        validator[f&#34;{key}::type&#34;] = type
+    if choices:
+        validator[f&#34;{key}::choices&#34;] = choices
+    if range:
+        validator[f&#34;{key}::range&#34;] = range
+    if doc:
+        self._docs[key] = doc</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.asYaml"><code class="name flex">
+<span>def <span class="ident">asYaml</span></span>(<span>self) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns this dict as yaml str, with comments, defaults, etc.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def asYaml(self) -&gt; str:
+    &#34;&#34;&#34;
+    Returns this dict as yaml str, with comments, defaults, etc.
+    &#34;&#34;&#34;
+    return _asYaml(self, doc=self._docs, validator=self._validator,
+                   default=self.default)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.checkDict"><code class="name flex">
+<span>def <span class="ident">checkDict</span></span>(<span>self, d: dict) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def checkDict(self, d: dict) -&gt; str:
+    invalidkeys = [key for key in d if key not in self.default]
+    if invalidkeys:
+        return f&#34;Some keys are not valid: {invalidkeys}&#34;
+    for k, v in d.items():
+        errormsg = self.checkValue(k, v)
+        if errormsg:
+            return errormsg
+    return &#34;&#34;</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.checkValue"><code class="name flex">
+<span>def <span class="ident">checkValue</span></span>(<span>self, key: str, value) ‑> Optional[str]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Check if value is valid for key</p>
+<p>Returns errormsg. If value is of correct type, errormsg is None</p>
+<h2 id="example">Example:</h2>
+<pre><code>error = config.checkType(key, value)
+if error:
+    print(error)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def checkValue(self, key: str, value) -&gt; Opt[str]:
+    &#34;&#34;&#34;
+    Check if value is valid for key
+
+    Returns errormsg. If value is of correct type, errormsg is None
+
+    ## Example:
+
+
+        error = config.checkType(key, value)
+        if error:
+            print(error)
+    &#34;&#34;&#34;
+    choices = self.getChoices(key)
+    if choices is not None and value not in choices:
+        return f&#34;key {key} should be one of {choices}, got {value}&#34;
+    t = self.getType(key)
+    if t == float:
+        if not _isfloaty(value):
+            return f&#34;Expected floatlike for key {key}, got {type(value).__name__}&#34;
+    elif t == str and not isinstance(value, (bytes, str)):
+        return f&#34;Expected str or bytes for key {key}, got {type(value).__name__}&#34;
+    elif not isinstance(value, t):
+        return f&#34;Expected {t.__name__} for key {key}, got {type(value).__name__}&#34;
+    r = self.getRange(key)
+    if r and not (r[0]&lt;=value&lt;=r[1]):
+        return f&#34;Value for key {key} should be within range {r}, got {value}&#34;
+    return None</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.copy"><code class="name flex">
+<span>def <span class="ident">copy</span></span>(<span>self) ‑> <a title="configdict.configdict.CheckedDict" href="#configdict.configdict.CheckedDict">CheckedDict</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>D.copy() -&gt; a shallow copy of D</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def copy(self) -&gt; CheckedDict:
+    out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
+                      precallback=self._precallback, callback=self._callback)
+    return out</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.diff"><code class="name flex">
+<span>def <span class="ident">diff</span></span>(<span>self) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get a dict containing keys:values which differ from default</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def diff(self) -&gt; dict:
+    &#34;&#34;&#34;
+    Get a dict containing keys:values which differ from default
+    &#34;&#34;&#34;
+    out = {}
+    default = self.default
+    for key, value in self.items():
+        valuedefault = default[key]
+        if value != valuedefault:
+            out[key] = value
+    return out</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.getChoices"><code class="name flex">
+<span>def <span class="ident">getChoices</span></span>(<span>self, key: str) ‑> Optional[list]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return a seq. of possible values for key <code>k</code>
+or <code>None</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getChoices(self, key: str) -&gt; Opt[list]:
+    &#34;&#34;&#34;
+    Return a seq. of possible values for key `k`
+    or `None`
+    &#34;&#34;&#34;
+    if key not in self._allowedkeys:
+        raise KeyError(f&#34;{key} is not a valid key&#34;)
+    if not self._validator:
+        logger.debug(&#34;getChoices: validator not set&#34;)
+        return None
+    key2 = key+&#34;::choices&#34;
+    choices = self._validator.get(key2, None)
+    if isinstance(choices, FunctionType):
+        realchoices = choices()
+        self._validator[key2] = set(realchoices)
+        return realchoices
+    return choices</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.getDoc"><code class="name flex">
+<span>def <span class="ident">getDoc</span></span>(<span>self, key: str) ‑> Optional[str]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get documentation for key (if present)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getDoc(self, key: str) -&gt; Opt[str]:
+    &#34;&#34;&#34; Get documentation for key (if present) &#34;&#34;&#34;
+    if self._docs:
+        return self._docs.get(key)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.getRange"><code class="name flex">
+<span>def <span class="ident">getRange</span></span>(<span>self, key: str) ‑> Optional[tuple]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the valid range for the value corresponding to this key,
+if it was specified.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getRange(self, key: str) -&gt; Opt[tuple]:
+    &#34;&#34;&#34;
+    Returns the valid range for the value corresponding to this key,
+    if it was specified.
+    &#34;&#34;&#34;
+    if key not in self._allowedkeys:
+        raise KeyError(f&#34;{key} is not a valid key&#34;)
+    if not self._validator:
+        logger.debug(&#34;getRange: validator not set&#34;)
+        return None
+    return self._validator.get(key+&#34;::range&#34;, None)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.getType"><code class="name flex">
+<span>def <span class="ident">getType</span></span>(<span>self, key: str) ‑> Union[type, Tuple[type, ...]]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the expected type for key, as a type which can be passed
+to isinstance</p>
+<p><strong>NB</strong>: all numbers are reduced to type float, all strings are of type str,
+otherwise the type of the default value, which can be a collection
+like a list or a dict</p>
+<p>See Also: <code>checkValue</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getType(self, key: str) -&gt; Union[type, Tuple[type,...]]:
+    &#34;&#34;&#34;
+    Returns the expected type for key, as a type which can be passed
+    to isinstance
+
+    **NB**: all numbers are reduced to type float, all strings are of type str,
+        otherwise the type of the default value, which can be a collection
+        like a list or a dict
+
+    See Also: `checkValue`
+    &#34;&#34;&#34;
+    if self._validator is not None:
+        definedtype = self._validator.get(key+&#34;::type&#34;)
+        if definedtype:
+            return definedtype
+        choices = self.getChoices(key)
+        if choices:
+            types = set(type(choice) for choice in choices)
+            if len(types) == 1:
+                return type(next(iter(choices)))
+            return tuple(types)
+    defaultval = self.default.get(key, _UNKNOWN)
+    if defaultval is _UNKNOWN:
+        raise KeyError(f&#34;Key {key} is not present in default config. &#34;
+                       f&#34;Possible keys: {list(self.default.keys())}&#34;)
+    return str if isinstance(defaultval,
+                             (bytes, str)) else type(defaultval)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.getTypestr"><code class="name flex">
+<span>def <span class="ident">getTypestr</span></span>(<span>self, key: str) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The same as <code>.getType</code> but returns a string representation of the type/types
+possible for the value of this key</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getTypestr(self, key: str) -&gt; str:
+    &#34;&#34;&#34;
+    The same as `.getType` but returns a string representation of the type/types
+    possible for the value of this key
+
+    &#34;&#34;&#34;
+    t = self.getType(key)
+    if isinstance(t, tuple):
+        return &#34;(&#34;+&#34;, &#34;.join(x.__name__ for x in t)+&#34;)&#34;
+    else:
+        return t.__name__</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.override"><code class="name flex">
+<span>def <span class="ident">override</span></span>(<span>self, key: str, value, default=None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The same as <code>value if value is not None else config.get(key, default)</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def override(self, key: str, value, default=None) -&gt; None:
+    &#34;&#34;&#34;
+    The same as `value if value is not None else config.get(key, default)`
+    &#34;&#34;&#34;
+    return value if value is not None else self.get(key, default)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.reset"><code class="name flex">
+<span>def <span class="ident">reset</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resets the config to its default (inplace), and saves it.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset(self) -&gt; None:
+    &#34;&#34;&#34;
+    Resets the config to its default (inplace), and saves it.
+    &#34;&#34;&#34;
+    self.clear()
+    self.update(self.default)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.CheckedDict.update"><code class="name flex">
+<span>def <span class="ident">update</span></span>(<span>self, d: dict = None, **kws) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Update ths dict with <code>d</code> or any key:value pair passed as keyword</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update(self, d: dict=None, **kws) -&gt; None:
+    &#34;&#34;&#34;
+    Update ths dict with `d` or any key:value pair passed as keyword
+    &#34;&#34;&#34;
+    if d:
+        errormsg = self.checkDict(d)
+        if errormsg:
+            raise ValueError(f&#34;dict is invalid: {errormsg}&#34;)
+        super().update(d)
+    if kws:
+        errormsg = self.checkDict(kws)
+        if errormsg:
+            raise ValueError(f&#34;invalid keywords: {errormsg}&#34;)
+        super().update(kws)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="configdict.configdict.ConfigDict"><code class="flex name class">
+<span>class <span class="ident">ConfigDict</span></span>
+<span>(</span><span>name: str, default: Dict[str, Any] = None, validator: Dict[str, Any] = None, docs: Dict[str, str] = None, precallback: Callable[[<a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a>, str, Any, Any], Any] = None, persistent=True, load=True, fmt='yaml')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This is a (optionally) persistent, unique dictionary used for configuration
+of a module / app. It is saved under the config folder determined by
+the OS (and is thus OS dependent) and no two instances of the same
+config can coexist.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>a str of the form <code>prefix.name</code> or <code>prefix/name</code>
+(these are the same) or simply <code>name</code> if this is an
+isolated configuration (not part of a bigger project). The
+data will be saved at <code>$USERCONFIGDIR/{prefix}/{name}.{fmt}</code> if
+prefix is given, or <code>$USERCONFIGDIR/{name}.{fmt}</code>.
+For instance, in Linux a config with a name "myproj.myconfig" and
+a yaml format will be saved to "~/.config/mydir/myconfig.yaml" </dd>
+<dt><strong><code>default</code></strong></dt>
+<dd>a dict with all default values. A config can accept only
+keys which are already present in the default. This value can be
+left as None if the config is built successively. See example below</dd>
+<dt><strong><code>validator</code></strong></dt>
+<dd>
+<p>a dict containing choices, types and/or ranges for the keys in the
+default. Given a default like: <code>{'keyA': 'foo', 'keyB': 20}</code>,
+a validator could be:</p>
+<pre><code>{
+  'keyA::choices': ['foo', 'bar'],
+  'keyB::type': float,
+  'keyB::range': (10, 30)
+}
+</code></pre>
+<p>Choices can be defined lazyly by giving a lambda</p>
+</dd>
+<dt><strong><code>docs</code></strong></dt>
+<dd>a dict containing documentation for each key</dd>
+<dt><strong><code>persistent</code></strong></dt>
+<dd>if True, any change to the dict will be saved. </dd>
+<dt><strong><code>load</code></strong></dt>
+<dd>if True, the saved version will be loaded after creation. This is disabled if
+no default dict is given. .load should be called manually in this case (see example)</dd>
+<dt><strong><code>precallback</code></strong></dt>
+<dd>function <code>(dict, key, oldvalue, newvalue) -&gt; None|newvalue</code>,
+If given, it is called <em>before</em> the modification is done. This function
+should return <strong>None</strong> to allow modification, <strong>any value</strong> to modify the value, or
+<strong>raise ValueError</strong> to stop the transaction</dd>
+</dl>
+<h2 id="example">Example:</h2>
+<pre><code>config = ConfigDict("myproj.subproj")
+config.addKey("keyA", 10, doc="documentaion of keyA")
+config.addKey("keyB", 0.5, range=(0, 1))
+config.addKey("keyC", "blue", choices=("blue", "red"),
+              doc="documentation of keyC")
+config.load()
+
+# The same effect can be achieved by passing the default/validator/doc
+
+default = {
+    "keyA": 10,
+    "keyB": 0.5,
+    "keyC": "blue
+}
+
+validator = {
+    "keyB::range": (0, 1),
+    "keyC::choices": ("blue", "red")
+}
+
+docs = {
+    "keyA": "documentation of keyA"
+    "keyC": "documentation of keyC"
+}
+
+cfg = ConfigDict("myproj.subproj",
+                 default=default,
+                 validator=validator,
+                 docs=docs)
+# no need to call .load in this case
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ConfigDict(CheckedDict):
+    &#34;&#34;&#34;
+    This is a (optionally) persistent, unique dictionary used for configuration
+    of a module / app. It is saved under the config folder determined by
+    the OS (and is thus OS dependent) and no two instances of the same
+    config can coexist.
+    &#34;&#34;&#34;
+    registry: Dict[str, ConfigDict] = {}
+    _helpwidth: int = 58
+
+    def __init__(self,
+                 name: str,
+                 default: Dict[str, Any] = None,
+                 validator: Dict[str, Any] = None,
+                 docs: Dict[str, str] = None,
+                 precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
+                 persistent=True,
+                 load=True,
+                 fmt=&#39;yaml&#39;) -&gt; None:
+        &#34;&#34;&#34;
+        Args:
+            name: a str of the form ``prefix.name`` or ``prefix/name``
+                (these are the same) or simply ``name`` if this is an
+                isolated configuration (not part of a bigger project). The
+                data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if 
+                prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
+                For instance, in Linux a config with a name &#34;myproj.myconfig&#34; and 
+                a yaml format will be saved to &#34;~/.config/mydir/myconfig.yaml&#34; 
+
+            default: a dict with all default values. A config can accept only
+                keys which are already present in the default. This value can be
+                left as None if the config is built successively. See example below
+
+            validator: a dict containing choices, types and/or ranges for the keys in the
+                default. Given a default like: ``{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}``,
+                a validator could be:
+
+
+                    {
+                      &#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],
+                      &#39;keyB::type&#39;: float,
+                      &#39;keyB::range&#39;: (10, 30)
+                    }
+
+
+                Choices can be defined lazyly by giving a lambda
+                
+            docs: a dict containing documentation for each key
+            
+            persistent: if True, any change to the dict will be saved. 
+            
+            load: if True, the saved version will be loaded after creation. This is disabled if 
+                no default dict is given. .load should be called manually in this case (see example)
+
+            precallback: function `(dict, key, oldvalue, newvalue) -&gt; None|newvalue`,
+                If given, it is called *before* the modification is done. This function
+                should return **None** to allow modification, **any value** to modify the value, or
+                **raise ValueError** to stop the transaction
+
+        ## Example:
+
+
+            config = ConfigDict(&#34;myproj.subproj&#34;)
+            config.addKey(&#34;keyA&#34;, 10, doc=&#34;documentaion of keyA&#34;)
+            config.addKey(&#34;keyB&#34;, 0.5, range=(0, 1))
+            config.addKey(&#34;keyC&#34;, &#34;blue&#34;, choices=(&#34;blue&#34;, &#34;red&#34;),
+                          doc=&#34;documentation of keyC&#34;)
+            config.load()
+
+            # The same effect can be achieved by passing the default/validator/doc 
+
+            default = {
+                &#34;keyA&#34;: 10,
+                &#34;keyB&#34;: 0.5,
+                &#34;keyC&#34;: &#34;blue
+            }
+
+            validator = {
+                &#34;keyB::range&#34;: (0, 1),
+                &#34;keyC::choices&#34;: (&#34;blue&#34;, &#34;red&#34;)
+            }
+
+            docs = {
+                &#34;keyA&#34;: &#34;documentation of keyA&#34;
+                &#34;keyC&#34;: &#34;documentation of keyC&#34;
+            }
+
+            cfg = ConfigDict(&#34;myproj.subproj&#34;,
+                             default=default,
+                             validator=validator,
+                             docs=docs)
+            # no need to call .load in this case
+
+        &#34;&#34;&#34;
+        if name:
+            name = _normalizeName(name)
+            if not _isValidName(name):
+                raise ValueError(f&#34;name {name} is invalid for a config&#34;)
+        if name in ConfigDict.registry:
+            logger.warning(&#34;A ConfigDict with the given name already exists!&#34;)
+        self.fmt = fmt
+
+        cfg = getConfig(name)
+        if cfg and default != cfg.default:
+            logger.warning(f&#34;ConfigDict: config with name {name} already created&#34;
+                           &#34;with different defaults. It will be overwritten&#34;)
+        super().__init__(default=default,
+                         validator=validator,
+                         docs=docs,
+                         callback=self._mycallback,
+                         precallback=precallback)
+        self._name = &#39;&#39;
+        self._base = &#39;&#39;
+        self._persistent = False
+        self._configPath = None
+        self._callbacks = []
+        self._loaded = False
+
+        if name:
+            self.name = name
+        else:
+            persistent = False
+            load = False
+
+        self.persistent = persistent
+
+        if default is not None and load:
+            self.load()
+
+    @property
+    def name(self) -&gt; Opt[str]:
+        return self._name
+
+    @name.setter
+    def name(self, name: str) -&gt; None:
+        if self._name:
+            raise ValueError(&#34;Name has already been set&#34;)
+
+        if name and name in self.registry:
+            raise ValueError(f&#34;Name {name} is already used&#34;)
+        self._name = name
+        base, configname = _parseName(name)
+        self._base: str = base
+        self.registry[name] = self
+
+    @property
+    def persistent(self) -&gt; bool:
+        return self._persistent
+
+    @persistent.setter
+    def persistent(self, value) -&gt; None:
+        self._persistent = value
+        if value:
+            if not self._name:
+                raise ValueError(&#34;A ConfigDict without namecannot be set to persistent&#34;)
+            self._ensureWritable()
+
+    def _mycallback(self, key, value):
+        &#34;&#34;&#34;
+        own callback used to dispatch to any registered callbacks and save
+        self after any change
+        &#34;&#34;&#34;
+        for pattern, func in self._callbacks:
+            if re.match(pattern, key):
+                func(self, key, value)
+        if self._persistent:
+            self.save()
+
+    def update(self, d: dict=None, **kws) -&gt; None:
+        &#34;&#34;&#34;
+        Update this dict with the values in d.
+
+        Args:
+            d: values in this dictionary will overwrite values in self.
+                Keys not present in self will raise an exception
+            **kws: any key:value here will also be used to update self
+
+        &#34;&#34;&#34;
+        if not d or kws:
+            return
+        kws.update(d)
+        errormsg = self.checkDict(kws)
+        if errormsg:
+            logger.error(f&#34;ConfigDict: {errormsg}&#34;)
+            logger.error(
+                    f&#34;Reset the dict to a default by removing the file &#39;{self.getPath()}&#39;&#34;
+            )
+            raise ValueError(&#34;dict is invalid&#34;)
+        self._persistent, persistent = False, self._persistent
+        super().update(kws)
+        self._persistent = persistent
+        if persistent:
+            self.save()
+
+    def copy(self) -&gt; ConfigDict:
+        &#34;&#34;&#34;
+        Create a copy if this ConfigDict. The resulting copy will be unnamed
+        and thus not persistent.
+
+        Returns:
+            the copy of this dict
+        &#34;&#34;&#34;
+        return self.clone(name=&#39;&#39;, persistent=False, cloneCallbacks=False)
+
+    def clone(self, name: str = &#39;&#39;, persistent: bool=None, cloneCallbacks=False
+              ) -&gt; ConfigDict:
+        &#34;&#34;&#34;
+        Create a clone of this dict
+
+        Args:
+            name: the name of the clone. If a name is not given, the clone cannot be
+                made persistent
+            persistent: given that this clone has a distinct name, should the clone be
+                made persitent?
+            cloneCallbacks: should the registered callbacks of the original (if any) be
+                also cloned?
+
+        Returns:
+            the cloned dict
+        &#34;&#34;&#34;
+        if name == self._name or name in self.registry:
+            raise ValueError(f&#34;name {name} is already taken!&#34;)
+        out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
+                         persistent=False, load=False, name=name)
+        out.update(self)
+        if name and persistent:
+            out._persistent = True
+        if cloneCallbacks and self._callbacks:
+            for pattern, func in self._callbacks:
+                out.registerCallback(func, pattern)
+        return out
+
+    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Register a callback to be fired when a key matching the given pattern is
+        changed. If no pattern is given, the function will be called for
+        every key.
+
+        Args:
+            func: a function of the form ``(dict, key, value) -&gt; None``, where *dict* is
+                this ConfigDict itself, *key* is the key which was just changed and *value*
+                is the new value.
+
+            pattern: call func when pattern matches key.
+
+        &#34;&#34;&#34;
+        self._callbacks.append((pattern or r&#34;.*&#34;, func))
+
+    def _ensureWritable(self) -&gt; None:
+        &#34;&#34;&#34; Make sure that we can serialize this dict to disk &#34;&#34;&#34;
+        folder, _ = os.path.split(self.getPath())
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+    def reset(self) -&gt; None:
+        &#34;&#34;&#34; Reset this dict to its default &#34;&#34;&#34;
+        super().reset()
+        self.save()
+
+    def save(self, path:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Normally a config doesn&#39;t need to be saved by the user,
+        it is saved whenever it is modified.
+        &#34;&#34;&#34;
+        if path is None:
+            path = self.getPath()
+            fmt = self.fmt
+        else:
+            fmt = os.path.splitext(path)[1][1:]
+            assert fmt in {&#39;json&#39;, &#39;yaml&#39;}
+
+        logger.debug(f&#34;Saving config to {path}&#34;)
+        if fmt is None:
+            fmt = self.fmt
+        if fmt == &#39;json&#39;:
+            with open(path, &#34;w&#34;) as f:
+                json.dump(self, f, indent=True, sort_keys=True)
+        elif fmt == &#39;yaml&#39;:
+            yamlstr = self.asYaml()
+            open(path, &#34;w&#34;).write(yamlstr)
+
+    def dump(self):
+        &#34;&#34;&#34; Dump this config to stdout &#34;&#34;&#34;
+        print(str(self))
+
+    def __str__(self) -&gt; str:
+        import tabulate
+        header = f&#34;Config: {self._name}\n&#34;
+        rows = []
+        keys = sorted(self.keys())
+        for k in keys:
+            v = self[k]
+            info = []
+            lines = []
+            choices = self.getChoices(k)
+            if choices:
+                choicestr = &#34;, &#34;.join(str(ch) for ch in choices)
+                if len(choicestr)&gt;self._helpwidth:
+                    choiceslines = textwrap.wrap(choicestr, self._helpwidth)
+                    lines.extend(choiceslines)
+                else:
+                    info.append(choicestr)
+            keyrange = self.getRange(k)
+            if keyrange:
+                info.append(f&#34;between {keyrange}&#34;)
+            typestr = self.getTypestr(k)
+            info.append(typestr)
+            valuestr = str(v)
+            rows.append((k, valuestr, &#34; | &#34;.join(info)))
+            doc = self.getDoc(k)
+            if doc:
+                doclines = textwrap.wrap(doc, self._helpwidth)
+                lines.extend(doclines)
+            for line in lines:
+                rows.append((&#34;&#34;, &#34;&#34;, line))
+        return header + tabulate.tabulate(rows)
+
+    def getPath(self) -&gt; str:
+        &#34;&#34;&#34; Return the path this dict will be saved to &#34;&#34;&#34;
+        if not self._configPath:
+            self._configPath = configPathFromName(self._name, self.fmt)
+        return self._configPath
+
+    def edit(self, waitOnModified=False) -&gt; None:
+        &#34;&#34;&#34;
+        Edit this config by opening it in an external application. The format
+        used is *yaml*, because it allows to embed comments. This is independent
+        of the format used for persistence. The application used is the user&#39;s
+        default application for the .yaml format and can be configured at the
+        os level. In macos we use `open`, in linux `xdg-open` and in windows
+        `start`, which all respond to the user&#39;s own configuration regarding
+        default applications.
+
+        NB: a temporary file is created for editing. The persisted file is only
+        modified if the editing is accepted.
+
+        Args:
+            waitOnModified: if True, the transaction is accepted whenever the
+                file being edited is saved. Otherwise a message box is created
+                which needs to be clicked in order to confirm the transaction.
+                Just exiting the application will not cancel the edit job since
+                many applications which have a server mode or unique instance
+                mode might in fact exit right away from the perspective of the
+                subprocess which launched them
+        &#34;&#34;&#34;
+        configfile = tempfile.mktemp(suffix=&#34;.yaml&#34;)
+        self.save(configfile)
+        _openInEditor(configfile)
+        if waitOnModified:
+            _waitOnFileModified(configfile)
+        else:
+            _waitForClick(title=self.name)
+        self.load(configfile)
+
+    def load(self, configpath:str=None) -&gt; None:
+        &#34;&#34;&#34;
+        Read the saved config, update self.
+        &#34;&#34;&#34;
+        if configpath is None:
+            configpath = self.getPath()
+        if not os.path.exists(configpath):
+            if self.default is None:
+                logger.error(
+                        &#34;No written config found, but default was not set&#34;)
+                raise FileNotFoundError(f&#34;{configpath} not found&#34;)
+            logger.debug(&#34;Using default config&#34;)
+            confdict = self.default
+        else:
+            logger.debug(f&#34;Reading config from disk: {configpath}&#34;)
+            if self.default is None:
+                raise ValueError(&#34;Default config not set&#34;)
+
+            fmt = os.path.splitext(configpath)[1]
+            if fmt == &#34;.json&#34;:
+                try:
+                    confdict = json.load(open(configpath))
+                except json.JSONDecodeError:
+                    error = sys.exc_info()[0]
+                    logger.error(f&#34;Could not read config {configpath}: {error}&#34;)
+                    logger.debug(&#34;Using default as fallback&#34;)
+                    confdict = self.default
+            elif fmt == &#34;.yaml&#34;:
+                try:
+                    with open(configpath) as f:
+                        confdict = yaml.load(f, Loader=yaml.SafeLoader)
+                except:
+                    logger.error(f&#34;Could not read config {configpath}&#34;)
+                    confdict = self.default
+            else:
+                raise ValueError(f&#34;format {fmt} unknown, supported formats: json, yaml&#34;)
+
+        # only keys in default should be accepted, but keys in the read
+        # config should be discarded with a warning
+        keysOnlyInRead = confdict.keys()-self.default.keys()
+        if keysOnlyInRead:
+            logger.warning(f&#34;ConfigDict {self._name}, saved at {configpath}&#34;)
+            logger.warning(
+                    &#34;There are keys defined in the saved&#34;
+                    &#34; config which are not present in the default config. They will&#34;
+                    &#34; be skipped:&#34;)
+            logger.warning(f&#34;   {keysOnlyInRead}&#34;)
+
+        # merge strategy:
+        # * if a key is shared between default and read dict, read dict has priority
+        # * if a key is present only in default, it is added
+        confdict = _mergeDicts(confdict, self.default)
+        self.checkDict(confdict)
+        super().update(confdict)
+        self._loaded = True</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="configdict.configdict.CheckedDict" href="#configdict.configdict.CheckedDict">CheckedDict</a></li>
+<li>builtins.dict</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="configdict.configdict.ConfigDict.registry"><code class="name">var <span class="ident">registry</span> : Dict[str, <a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a>]</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="configdict.configdict.ConfigDict.name"><code class="name">var <span class="ident">name</span> : Optional[str]</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def name(self) -&gt; Opt[str]:
+    return self._name</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.persistent"><code class="name">var <span class="ident">persistent</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def persistent(self) -&gt; bool:
+    return self._persistent</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="configdict.configdict.ConfigDict.clone"><code class="name flex">
+<span>def <span class="ident">clone</span></span>(<span>self, name: str = '', persistent: bool = None, cloneCallbacks=False) ‑> <a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a clone of this dict</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>name</code></strong></dt>
+<dd>the name of the clone. If a name is not given, the clone cannot be
+made persistent</dd>
+<dt><strong><code>persistent</code></strong></dt>
+<dd>given that this clone has a distinct name, should the clone be
+made persitent?</dd>
+<dt><strong><code>cloneCallbacks</code></strong></dt>
+<dd>should the registered callbacks of the original (if any) be
+also cloned?</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>the cloned dict</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clone(self, name: str = &#39;&#39;, persistent: bool=None, cloneCallbacks=False
+          ) -&gt; ConfigDict:
+    &#34;&#34;&#34;
+    Create a clone of this dict
+
+    Args:
+        name: the name of the clone. If a name is not given, the clone cannot be
+            made persistent
+        persistent: given that this clone has a distinct name, should the clone be
+            made persitent?
+        cloneCallbacks: should the registered callbacks of the original (if any) be
+            also cloned?
+
+    Returns:
+        the cloned dict
+    &#34;&#34;&#34;
+    if name == self._name or name in self.registry:
+        raise ValueError(f&#34;name {name} is already taken!&#34;)
+    out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
+                     persistent=False, load=False, name=name)
+    out.update(self)
+    if name and persistent:
+        out._persistent = True
+    if cloneCallbacks and self._callbacks:
+        for pattern, func in self._callbacks:
+            out.registerCallback(func, pattern)
+    return out</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.copy"><code class="name flex">
+<span>def <span class="ident">copy</span></span>(<span>self) ‑> <a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Create a copy if this ConfigDict. The resulting copy will be unnamed
+and thus not persistent.</p>
+<h2 id="returns">Returns</h2>
+<p>the copy of this dict</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def copy(self) -&gt; ConfigDict:
+    &#34;&#34;&#34;
+    Create a copy if this ConfigDict. The resulting copy will be unnamed
+    and thus not persistent.
+
+    Returns:
+        the copy of this dict
+    &#34;&#34;&#34;
+    return self.clone(name=&#39;&#39;, persistent=False, cloneCallbacks=False)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.dump"><code class="name flex">
+<span>def <span class="ident">dump</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Dump this config to stdout</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def dump(self):
+    &#34;&#34;&#34; Dump this config to stdout &#34;&#34;&#34;
+    print(str(self))</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.edit"><code class="name flex">
+<span>def <span class="ident">edit</span></span>(<span>self, waitOnModified=False) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Edit this config by opening it in an external application. The format
+used is <em>yaml</em>, because it allows to embed comments. This is independent
+of the format used for persistence. The application used is the user's
+default application for the .yaml format and can be configured at the
+os level. In macos we use <code>open</code>, in linux <code>xdg-open</code> and in windows
+<code>start</code>, which all respond to the user's own configuration regarding
+default applications.</p>
+<p>NB: a temporary file is created for editing. The persisted file is only
+modified if the editing is accepted.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>waitOnModified</code></strong></dt>
+<dd>if True, the transaction is accepted whenever the
+file being edited is saved. Otherwise a message box is created
+which needs to be clicked in order to confirm the transaction.
+Just exiting the application will not cancel the edit job since
+many applications which have a server mode or unique instance
+mode might in fact exit right away from the perspective of the
+subprocess which launched them</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def edit(self, waitOnModified=False) -&gt; None:
+    &#34;&#34;&#34;
+    Edit this config by opening it in an external application. The format
+    used is *yaml*, because it allows to embed comments. This is independent
+    of the format used for persistence. The application used is the user&#39;s
+    default application for the .yaml format and can be configured at the
+    os level. In macos we use `open`, in linux `xdg-open` and in windows
+    `start`, which all respond to the user&#39;s own configuration regarding
+    default applications.
+
+    NB: a temporary file is created for editing. The persisted file is only
+    modified if the editing is accepted.
+
+    Args:
+        waitOnModified: if True, the transaction is accepted whenever the
+            file being edited is saved. Otherwise a message box is created
+            which needs to be clicked in order to confirm the transaction.
+            Just exiting the application will not cancel the edit job since
+            many applications which have a server mode or unique instance
+            mode might in fact exit right away from the perspective of the
+            subprocess which launched them
+    &#34;&#34;&#34;
+    configfile = tempfile.mktemp(suffix=&#34;.yaml&#34;)
+    self.save(configfile)
+    _openInEditor(configfile)
+    if waitOnModified:
+        _waitOnFileModified(configfile)
+    else:
+        _waitForClick(title=self.name)
+    self.load(configfile)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.getPath"><code class="name flex">
+<span>def <span class="ident">getPath</span></span>(<span>self) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return the path this dict will be saved to</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getPath(self) -&gt; str:
+    &#34;&#34;&#34; Return the path this dict will be saved to &#34;&#34;&#34;
+    if not self._configPath:
+        self._configPath = configPathFromName(self._name, self.fmt)
+    return self._configPath</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.load"><code class="name flex">
+<span>def <span class="ident">load</span></span>(<span>self, configpath: str = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read the saved config, update self.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load(self, configpath:str=None) -&gt; None:
+    &#34;&#34;&#34;
+    Read the saved config, update self.
+    &#34;&#34;&#34;
+    if configpath is None:
+        configpath = self.getPath()
+    if not os.path.exists(configpath):
+        if self.default is None:
+            logger.error(
+                    &#34;No written config found, but default was not set&#34;)
+            raise FileNotFoundError(f&#34;{configpath} not found&#34;)
+        logger.debug(&#34;Using default config&#34;)
+        confdict = self.default
+    else:
+        logger.debug(f&#34;Reading config from disk: {configpath}&#34;)
+        if self.default is None:
+            raise ValueError(&#34;Default config not set&#34;)
+
+        fmt = os.path.splitext(configpath)[1]
+        if fmt == &#34;.json&#34;:
+            try:
+                confdict = json.load(open(configpath))
+            except json.JSONDecodeError:
+                error = sys.exc_info()[0]
+                logger.error(f&#34;Could not read config {configpath}: {error}&#34;)
+                logger.debug(&#34;Using default as fallback&#34;)
+                confdict = self.default
+        elif fmt == &#34;.yaml&#34;:
+            try:
+                with open(configpath) as f:
+                    confdict = yaml.load(f, Loader=yaml.SafeLoader)
+            except:
+                logger.error(f&#34;Could not read config {configpath}&#34;)
+                confdict = self.default
+        else:
+            raise ValueError(f&#34;format {fmt} unknown, supported formats: json, yaml&#34;)
+
+    # only keys in default should be accepted, but keys in the read
+    # config should be discarded with a warning
+    keysOnlyInRead = confdict.keys()-self.default.keys()
+    if keysOnlyInRead:
+        logger.warning(f&#34;ConfigDict {self._name}, saved at {configpath}&#34;)
+        logger.warning(
+                &#34;There are keys defined in the saved&#34;
+                &#34; config which are not present in the default config. They will&#34;
+                &#34; be skipped:&#34;)
+        logger.warning(f&#34;   {keysOnlyInRead}&#34;)
+
+    # merge strategy:
+    # * if a key is shared between default and read dict, read dict has priority
+    # * if a key is present only in default, it is added
+    confdict = _mergeDicts(confdict, self.default)
+    self.checkDict(confdict)
+    super().update(confdict)
+    self._loaded = True</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.registerCallback"><code class="name flex">
+<span>def <span class="ident">registerCallback</span></span>(<span>self, func: Callable[[<a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a>, str, Any], None], pattern: str = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Register a callback to be fired when a key matching the given pattern is
+changed. If no pattern is given, the function will be called for
+every key.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>func</code></strong></dt>
+<dd>a function of the form <code>(dict, key, value) -&gt; None</code>, where <em>dict</em> is
+this ConfigDict itself, <em>key</em> is the key which was just changed and <em>value</em>
+is the new value.</dd>
+<dt><strong><code>pattern</code></strong></dt>
+<dd>call func when pattern matches key.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=None) -&gt; None:
+    &#34;&#34;&#34;
+    Register a callback to be fired when a key matching the given pattern is
+    changed. If no pattern is given, the function will be called for
+    every key.
+
+    Args:
+        func: a function of the form ``(dict, key, value) -&gt; None``, where *dict* is
+            this ConfigDict itself, *key* is the key which was just changed and *value*
+            is the new value.
+
+        pattern: call func when pattern matches key.
+
+    &#34;&#34;&#34;
+    self._callbacks.append((pattern or r&#34;.*&#34;, func))</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.reset"><code class="name flex">
+<span>def <span class="ident">reset</span></span>(<span>self) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reset this dict to its default</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reset(self) -&gt; None:
+    &#34;&#34;&#34; Reset this dict to its default &#34;&#34;&#34;
+    super().reset()
+    self.save()</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.save"><code class="name flex">
+<span>def <span class="ident">save</span></span>(<span>self, path: str = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Normally a config doesn't need to be saved by the user,
+it is saved whenever it is modified.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save(self, path:str=None) -&gt; None:
+    &#34;&#34;&#34;
+    Normally a config doesn&#39;t need to be saved by the user,
+    it is saved whenever it is modified.
+    &#34;&#34;&#34;
+    if path is None:
+        path = self.getPath()
+        fmt = self.fmt
+    else:
+        fmt = os.path.splitext(path)[1][1:]
+        assert fmt in {&#39;json&#39;, &#39;yaml&#39;}
+
+    logger.debug(f&#34;Saving config to {path}&#34;)
+    if fmt is None:
+        fmt = self.fmt
+    if fmt == &#39;json&#39;:
+        with open(path, &#34;w&#34;) as f:
+            json.dump(self, f, indent=True, sort_keys=True)
+    elif fmt == &#39;yaml&#39;:
+        yamlstr = self.asYaml()
+        open(path, &#34;w&#34;).write(yamlstr)</code></pre>
+</details>
+</dd>
+<dt id="configdict.configdict.ConfigDict.update"><code class="name flex">
+<span>def <span class="ident">update</span></span>(<span>self, d: dict = None, **kws) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Update this dict with the values in d.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>d</code></strong></dt>
+<dd>values in this dictionary will overwrite values in self.
+Keys not present in self will raise an exception</dd>
+<dt><strong><code>**kws</code></strong></dt>
+<dd>any key:value here will also be used to update self</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update(self, d: dict=None, **kws) -&gt; None:
+    &#34;&#34;&#34;
+    Update this dict with the values in d.
+
+    Args:
+        d: values in this dictionary will overwrite values in self.
+            Keys not present in self will raise an exception
+        **kws: any key:value here will also be used to update self
+
+    &#34;&#34;&#34;
+    if not d or kws:
+        return
+    kws.update(d)
+    errormsg = self.checkDict(kws)
+    if errormsg:
+        logger.error(f&#34;ConfigDict: {errormsg}&#34;)
+        logger.error(
+                f&#34;Reset the dict to a default by removing the file &#39;{self.getPath()}&#39;&#34;
+        )
+        raise ValueError(&#34;dict is invalid&#34;)
+    self._persistent, persistent = False, self._persistent
+    super().update(kws)
+    self._persistent = persistent
+    if persistent:
+        self.save()</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="configdict.configdict.CheckedDict" href="#configdict.configdict.CheckedDict">CheckedDict</a></b></code>:
+<ul class="hlist">
+<li><code><a title="configdict.configdict.CheckedDict.addKey" href="#configdict.configdict.CheckedDict.addKey">addKey</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.asYaml" href="#configdict.configdict.CheckedDict.asYaml">asYaml</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.checkValue" href="#configdict.configdict.CheckedDict.checkValue">checkValue</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.diff" href="#configdict.configdict.CheckedDict.diff">diff</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getChoices" href="#configdict.configdict.CheckedDict.getChoices">getChoices</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getDoc" href="#configdict.configdict.CheckedDict.getDoc">getDoc</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getRange" href="#configdict.configdict.CheckedDict.getRange">getRange</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getType" href="#configdict.configdict.CheckedDict.getType">getType</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getTypestr" href="#configdict.configdict.CheckedDict.getTypestr">getTypestr</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.override" href="#configdict.configdict.CheckedDict.override">override</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#checkeddict">CheckedDict</a></li>
+<li><a href="#configdict">ConfigDict</a></li>
+<li><a href="#example">Example</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="configdict" href="index.html">configdict</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="configdict.configdict.activeConfigs" href="#configdict.configdict.activeConfigs">activeConfigs</a></code></li>
+<li><code><a title="configdict.configdict.configPathFromName" href="#configdict.configdict.configPathFromName">configPathFromName</a></code></li>
+<li><code><a title="configdict.configdict.getConfig" href="#configdict.configdict.getConfig">getConfig</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="configdict.configdict.CheckedDict" href="#configdict.configdict.CheckedDict">CheckedDict</a></code></h4>
+<ul class="two-column">
+<li><code><a title="configdict.configdict.CheckedDict.addKey" href="#configdict.configdict.CheckedDict.addKey">addKey</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.asYaml" href="#configdict.configdict.CheckedDict.asYaml">asYaml</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.checkDict" href="#configdict.configdict.CheckedDict.checkDict">checkDict</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.checkValue" href="#configdict.configdict.CheckedDict.checkValue">checkValue</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.copy" href="#configdict.configdict.CheckedDict.copy">copy</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.diff" href="#configdict.configdict.CheckedDict.diff">diff</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getChoices" href="#configdict.configdict.CheckedDict.getChoices">getChoices</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getDoc" href="#configdict.configdict.CheckedDict.getDoc">getDoc</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getRange" href="#configdict.configdict.CheckedDict.getRange">getRange</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getType" href="#configdict.configdict.CheckedDict.getType">getType</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.getTypestr" href="#configdict.configdict.CheckedDict.getTypestr">getTypestr</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.override" href="#configdict.configdict.CheckedDict.override">override</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.reset" href="#configdict.configdict.CheckedDict.reset">reset</a></code></li>
+<li><code><a title="configdict.configdict.CheckedDict.update" href="#configdict.configdict.CheckedDict.update">update</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="configdict.configdict.ConfigDict" href="#configdict.configdict.ConfigDict">ConfigDict</a></code></h4>
+<ul class="two-column">
+<li><code><a title="configdict.configdict.ConfigDict.clone" href="#configdict.configdict.ConfigDict.clone">clone</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.copy" href="#configdict.configdict.ConfigDict.copy">copy</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.dump" href="#configdict.configdict.ConfigDict.dump">dump</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.edit" href="#configdict.configdict.ConfigDict.edit">edit</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.getPath" href="#configdict.configdict.ConfigDict.getPath">getPath</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.load" href="#configdict.configdict.ConfigDict.load">load</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.name" href="#configdict.configdict.ConfigDict.name">name</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.persistent" href="#configdict.configdict.ConfigDict.persistent">persistent</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.registerCallback" href="#configdict.configdict.ConfigDict.registerCallback">registerCallback</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.registry" href="#configdict.configdict.ConfigDict.registry">registry</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.reset" href="#configdict.configdict.ConfigDict.reset">reset</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.save" href="#configdict.configdict.ConfigDict.save">save</a></code></li>
+<li><code><a title="configdict.configdict.ConfigDict.update" href="#configdict.configdict.ConfigDict.update">update</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+</footer>
+</body>
+</html>
