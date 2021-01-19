@@ -5,10 +5,11 @@ CheckedDict
 -----------
 
 A dictionary based on a default prototype. A CheckedDict can only define
-key:value pairs which are already present in the default. It is possible to
+``key:value`` pairs which are already present in the default. It is possible to
 define a docstring for each key and different restrictions for the values
 regarding possible values, ranges and type. A CheckedDict is useful for
 configuration settings.
+
 
 ConfigDict
 ----------
@@ -25,6 +26,17 @@ Example
 
 .. code-block:: python
 
+   config = ConfigDict("myproj.subproj")
+   config.addKey("keyA", 10, doc="documentaion of keyA")
+   config.addKey("keyB", 0.5, range=(0, 1))
+   config.addKey("keyC", "blue", choices=("blue", "red"),
+                 doc="documentation of keyC")
+   config.load()
+
+Alternatively, a ConfigDict can be created all at once:
+
+.. code-block:: python
+                
    config = ConfigDict("myapp",
        default = {
            'font-size': 10.0,
@@ -46,15 +58,4 @@ This will create the dictionary and load any persisted version. Any saved
 modifications will override the default values. Whenever the user changes any
 value (via ``config[key] = newvalue``) the dictionary will be saved.
 
-
-A ConfigDict can also be created setting by setting:
-
-
-.. code-block:: python
-
-    config = ConfigDict("myproj:subproj")
-    config.addKey("font-size", 10.0, doc="The size of the font, in pixels")
-    config.addKey("font-family", "Monospace", choices={'Roboto', 'Monospace'})
-    config.addKey("port", 9100, range=(9000, 65000), type=int, 
-                  doc="The port number to listen to")
-    config.load()
+In all other respects a ConfigDict behaves like a normal dictionary.

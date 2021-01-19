@@ -1,3 +1,61 @@
+"""
+## CheckedDict
+
+A dictionary based on a default prototype. A CheckedDict can only define
+``key:value`` pairs which are already present in the default. It is possible to
+define a docstring for each key and different restrictions for the values
+regarding possible values, ranges and type. A CheckedDict is useful for
+configuration settings.
+
+
+## ConfigDict
+
+Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is
+saved under the config folder determined by the OS and it is updated with each
+modification. It is useful for implementing configuration of a module / library
+/ app, where there is a default/initial state and the user needs to be able to
+configure global settings which must be persisted between sessions (similar to
+the settings in an application)
+
+## Example
+
+
+    config = ConfigDict("myproj.subproj")
+    config.addKey("keyA", 10, doc="documentaion of keyA")
+    config.addKey("keyB", 0.5, range=(0, 1))
+    config.addKey("keyC", "blue", choices=("blue", "red"),
+                  doc="documentation of keyC")
+    config.load()
+
+
+Alternatively, a ConfigDict can be created all at once:
+
+
+    config = ConfigDict("myapp",
+        default = {
+            'font-size': 10.0,
+            'font-family': "Monospace",
+            'port' : 9100,
+        },
+        validator = {
+            'font-size::range' : (8, 24),
+            'port::range' : (9000, 65000),
+            'font-family::choices' : {'Roboto', 'Monospace'},
+        },
+        docs = {
+            'port': 'The port number to listen to',
+            'font-size': 'The size of the font, in pixels'
+        }
+    )
+
+
+This will create the dictionary and load any persisted version. Any saved
+modifications will override the default values. Whenever the user changes any
+value (via ``config[key] = newvalue``) the dictionary will be saved.
+
+In all other respects a ConfigDict behaves like a normal dictionary.
+
+"""
 from __future__ import annotations
 
 import appdirs
@@ -10,7 +68,7 @@ import re
 import textwrap
 import tempfile
 from types import FunctionType
-from typing import (Optional as Opt, Any, Tuple, Dict, Union)
+from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable)
 
 
 __all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPathFromName"]
@@ -214,36 +272,38 @@ def _openInEditor(cfg):
 
 
 class CheckedDict(dict):
+    """
+    A dictionary which checks that the keys and values are valid
+    according to a default dict and a validator.
+    """
     def __init__(self,
                  default: Dict[str, Any] = None,
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
-                 callback=None,
+                 callback:Callable[[str, Any], None]=None,
                  precallback=None) -> None:
         """
-        A dictionary which checks that the keys and values are valid
-        according to a default dict and a validator.
 
         Args:
             default: a dict will all default values. A config can accept only
                 keys which are already present in the default
 
             validator: a dict containing choices and types for the keys in the
-                default. Given a default like: {'keyA': 'foo', 'keyB': 20},
+                default. Given a default like: `{'keyA': 'foo', 'keyB': 20}`,
                 a validator could be:
 
-                {'keyA::choices': ['foo', 'bar'],
-                 'keyB::type': float,
-                 'keyC::range': (0, 1)
-                }
+                    {'keyA::choices': ['foo', 'bar'],
+                     'keyB::type': float,
+                     'keyC::range': (0, 1)
+                    }
 
                 choices can be defined lazyly by giving a lambda which returns a list
                 of possible choices
 
             docs: a dict containing help lines for keys defined in default
-            callback:
-                function (key, value) -> None
-                This function is called AFTER the modification has been done.
+            callback: function `(key, value) -> None`. This function is called **after**
+                the modification has been done.
+            precallback: function `(key, value) -> None`
         """
         self.default = default if default else {}
         self._validator = _checkValidator(validator,
@@ -275,17 +335,19 @@ class CheckedDict(dict):
 
     def addKey(self,
                key: str,
-               value,
-               type=None,
+               value: Any,
+               type: Union[type, Tuple[type,...]]=None,
                choices=None,
                range: Tuple[Any, Any] = None,
                doc: str = None) -> None:
         """
-        Add a key: value pair to the default settings. This is used when building the
+        Add a `key: value` pair to the default settings. This is used when building the
         default config item by item (see example). After adding all new keys it is
-        necessary to call .load()
+        necessary to call `.load()`
 
-        Example:
+        ## Example:
+
+
             cfg = ConfigDict("foo", load=False)
             # We define a default step by step
             cfg.addKey("size", 100, range=(50, 150))
@@ -299,7 +361,7 @@ class CheckedDict(dict):
             value: a default value
             type: the type accepted, as passed to isinstance (can be a tuple)
             choices: a seq of possible values
-            range: a (min, max) tuple defining allowed range
+            range: a (min, max) tuple defining an allowed range for this value
             doc: documentation for this key
 
         """
@@ -347,7 +409,7 @@ class CheckedDict(dict):
     def getChoices(self, key: str) -> Opt[list]:
         """
         Return a seq. of possible values for key `k`
-        or None
+        or `None`
         """
         if key not in self._allowedkeys:
             raise KeyError(f"{key} is not a valid key")
@@ -373,11 +435,12 @@ class CheckedDict(dict):
 
         Returns errormsg. If value is of correct type, errormsg is None
 
-        Example:
+        ## Example:
 
-        error = config.checkType(key, value)
-        if error:
-            print(error)
+
+            error = config.checkType(key, value)
+            if error:
+                print(error)
         """
         choices = self.getChoices(key)
         if choices is not None and value not in choices:
@@ -396,22 +459,27 @@ class CheckedDict(dict):
         return None
 
     def getRange(self, key: str) -> Opt[tuple]:
+        """
+        Returns the valid range for the value corresponding to this key,
+        if it was specified.
+        """
         if key not in self._allowedkeys:
             raise KeyError(f"{key} is not a valid key")
         if not self._validator:
-            logger.debug("getChoices: validator not set")
+            logger.debug("getRange: validator not set")
             return None
         return self._validator.get(key+"::range", None)
 
-    def getType(self, key: str):
+    def getType(self, key: str) -> Union[type, Tuple[type,...]]:
         """
-        Returns the expected type for key, as a type
+        Returns the expected type for key, as a type which can be passed
+        to isinstance
 
-        NB: all numbers are reduced to type float, all strings are of type str,
+        **NB**: all numbers are reduced to type float, all strings are of type str,
             otherwise the type of the default value, which can be a collection
             like a list or a dict
 
-        See Also: checkValue
+        See Also: `checkValue`
         """
         if self._validator is not None:
             definedtype = self._validator.get(key+"::type")
@@ -431,6 +499,11 @@ class CheckedDict(dict):
                                  (bytes, str)) else type(defaultval)
 
     def getTypestr(self, key: str) -> str:
+        """
+        The same as `.getType` but returns a string representation of the type/types
+        possible for the value of this key
+
+        """
         t = self.getType(key)
         if isinstance(t, tuple):
             return "("+", ".join(x.__name__ for x in t)+")"
@@ -440,17 +513,14 @@ class CheckedDict(dict):
     def reset(self) -> None:
         """
         Resets the config to its default (inplace), and saves it.
-
-        Example
-        ~~~~~~~
-
-        cfg = getconfig("folder:config")
-        cfg = cfg.reset()
         """
         self.clear()
         self.update(self.default)
 
     def update(self, d: dict=None, **kws) -> None:
+        """
+        Update ths dict with `d` or any key:value pair passed as keyword
+        """
         if d:
             errormsg = self.checkDict(d)
             if errormsg:
@@ -462,18 +532,27 @@ class CheckedDict(dict):
                 raise ValueError(f"invalid keywords: {errormsg}")
             super().update(kws)
 
-    def override(self, key: str, value, default=None):
+    def override(self, key: str, value, default=None) -> None:
         """
-        The same as `value if value is not None else config.get(key, default)
+        The same as `value if value is not None else config.get(key, default)`
         """
         return value if value is not None else self.get(key, default)
 
     def asYaml(self) -> str:
+        """
+        Returns this dict as yaml str, with comments, defaults, etc.
+        """
         return _asYaml(self, doc=self._docs, validator=self._validator,
                        default=self.default)
 
 
 class ConfigDict(CheckedDict):
+    """
+    This is a (optionally) persistent, unique dictionary used for configuration
+    of a module / app. It is saved under the config folder determined by
+    the OS (and is thus OS dependent) and no two instances of the same
+    config can coexist.
+    """
     registry: Dict[str, ConfigDict] = {}
     _helpwidth: int = 58
 
@@ -482,16 +561,11 @@ class ConfigDict(CheckedDict):
                  default: Dict[str, Any] = None,
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
-                 precallback=None,
+                 precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
                  persistent=True,
                  load=True,
                  fmt='yaml') -> None:
         """
-        This is a (optionally) persistent, unique dictionary used for configuration
-        of a module / app. It is saved under the config folder determined by
-        the OS (and is thus OS dependent) and no two instances of the same
-        config can coexist.
-
         Args:
             name: a str of the form ``prefix.name`` or ``prefix/name``
                 (these are the same) or simply ``name`` if this is an
@@ -509,11 +583,13 @@ class ConfigDict(CheckedDict):
                 default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
                 a validator could be:
 
-                {
-                  'keyA::choices': ['foo', 'bar'],
-                  'keyB::type': float,
-                  'keyB::range': (10, 30)
-                }
+
+                    {
+                      'keyA::choices': ['foo', 'bar'],
+                      'keyB::type': float,
+                      'keyB::range': (10, 30)
+                    }
+
 
                 Choices can be defined lazyly by giving a lambda
                 
@@ -524,16 +600,13 @@ class ConfigDict(CheckedDict):
             load: if True, the saved version will be loaded after creation. This is disabled if 
                 no default dict is given. .load should be called manually in this case (see example)
 
-            precallback:
-                function (self, key, oldvalue, newvalue) -> None|newvalue,
-                If given, it is called BEFORE the modification is done. This function
-                should return:
-                    * None to allow modification
-                    * any value to modify the value
-                    * raise a ValueError exception to stop the transaction
+            precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
+                If given, it is called *before* the modification is done. This function
+                should return **None** to allow modification, **any value** to modify the value, or
+                **raise ValueError** to stop the transaction
 
-        Example:
-            A ConfigDict defined item by item
+        ## Example:
+
 
             config = ConfigDict("myproj.subproj")
             config.addKey("keyA", 10, doc="documentaion of keyA")
@@ -551,8 +624,8 @@ class ConfigDict(CheckedDict):
             }
 
             validator = {
-                "keyB::range" = (0, 1),
-                "keyC::choices" = ("blue", "red")
+                "keyB::range": (0, 1),
+                "keyC::choices": ("blue", "red")
             }
 
             docs = {
@@ -705,18 +778,19 @@ class ConfigDict(CheckedDict):
                 out.registerCallback(func, pattern)
         return out
 
-    def registerCallback(self, func, pattern=None) -> None:
+    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=None) -> None:
         """
         Register a callback to be fired when a key matching the given pattern is
         changed. If no pattern is given, the function will be called for
         every key.
 
         Args:
-            func: a function of the form (dict, key, value) -> None
-                dict - this ConfigDict itself
-                key - the key which was just changed
-                value - the new value
-            pattern: call func when pattern matches key
+            func: a function of the form ``(dict, key, value) -> None``, where *dict* is
+                this ConfigDict itself, *key* is the key which was just changed and *value*
+                is the new value.
+
+            pattern: call func when pattern matches key.
+
         """
         self._callbacks.append((pattern or r".*", func))
 
@@ -798,7 +872,7 @@ class ConfigDict(CheckedDict):
     def edit(self, waitOnModified=False) -> None:
         """
         Edit this config by opening it in an external application. The format
-        used is yaml, because it allows to embed comments. This is independent
+        used is *yaml*, because it allows to embed comments. This is independent
         of the format used for persistence. The application used is the user's
         default application for the .yaml format and can be configured at the
         os level. In macos we use `open`, in linux `xdg-open` and in windows
@@ -828,15 +902,7 @@ class ConfigDict(CheckedDict):
 
     def load(self, configpath:str=None) -> None:
         """
-        Read the saved config, update self. This is used internally but it can be usedful
-        if the file is changed externally and no monitoring is activated
-
-        * If no saved config (not present or unreadable)
-            * if default was given:
-                * use default
-            * otherwise:
-                * if saved config is unreadable, raise JSONDecodeError
-                * if saved config not present, raise FileNotFoundError
+        Read the saved config, update self.
         """
         if configpath is None:
             configpath = self.getPath()
