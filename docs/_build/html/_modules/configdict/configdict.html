@@ -13,6 +13,7 @@
   
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
 
   
   
@@ -82,9 +83,14 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/configdict.configdict.getConfig.html">getConfig</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/configdict.configdict.activeConfigs.html">activeConfigs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/configdict.configdict.configPathFromName.html">configPathFromName</a></li>
+</ul>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../source/configdict.html">configdict package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/configdict.configdict.CheckedDict.html">CheckedDict</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/configdict.configdict.ConfigDict.html">ConfigDict</a></li>
 </ul>
 
             
@@ -426,7 +432,7 @@
     <span class="n">_openInStandardApp</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="CheckedDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict">[docs]</a><span class="k">class</span> <span class="nc">CheckedDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="CheckedDict"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict">[docs]</a><span class="k">class</span> <span class="nc">CheckedDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A dictionary which checks that the keys and values are valid</span>
 <span class="sd">    according to a default dict and a validator.</span>
@@ -470,12 +476,12 @@
     <span class="k">def</span> <span class="nf">_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-<div class="viewcode-block" id="CheckedDict.copy"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckedDict</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.copy"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckedDict</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">CheckedDict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">,</span> <span class="n">docs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">,</span>
                           <span class="n">precallback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precallback</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
-<div class="viewcode-block" id="CheckedDict.diff"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.diff"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get a dict containing keys:values which differ from default</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -487,7 +493,7 @@
                 <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
-<div class="viewcode-block" id="CheckedDict.addKey"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.addKey">[docs]</a>    <span class="k">def</span> <span class="nf">addKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="CheckedDict.addKey"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.addKey">[docs]</a>    <span class="k">def</span> <span class="nf">addKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
                <span class="nb">type</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -550,7 +556,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CheckedDict.checkDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.checkDict">[docs]</a>    <span class="k">def</span> <span class="nf">checkDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.checkDict"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.checkDict">[docs]</a>    <span class="k">def</span> <span class="nf">checkDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="n">invalidkeys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">invalidkeys</span><span class="p">:</span>
             <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Some keys are not valid: </span><span class="si">{</span><span class="n">invalidkeys</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -560,7 +566,7 @@
                 <span class="k">return</span> <span class="n">errormsg</span>
         <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
 
-<div class="viewcode-block" id="CheckedDict.getChoices"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getChoices">[docs]</a>    <span class="k">def</span> <span class="nf">getChoices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">list</span><span class="p">]:</span>
+<div class="viewcode-block" id="CheckedDict.getChoices"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.getChoices">[docs]</a>    <span class="k">def</span> <span class="nf">getChoices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">list</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return a seq. of possible values for key `k`</span>
 <span class="sd">        or `None`</span>
@@ -578,12 +584,12 @@
             <span class="k">return</span> <span class="n">realchoices</span>
         <span class="k">return</span> <span class="n">choices</span></div>
 
-<div class="viewcode-block" id="CheckedDict.getDoc"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getDoc">[docs]</a>    <span class="k">def</span> <span class="nf">getDoc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="CheckedDict.getDoc"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.getDoc">[docs]</a>    <span class="k">def</span> <span class="nf">getDoc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot; Get documentation for key (if present) &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.checkValue"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.checkValue">[docs]</a>    <span class="k">def</span> <span class="nf">checkValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="CheckedDict.checkValue"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.checkValue">[docs]</a>    <span class="k">def</span> <span class="nf">checkValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check if value is valid for key</span>
 
@@ -612,7 +618,7 @@
             <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Value for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> should be within range </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">return</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="CheckedDict.getRange"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getRange">[docs]</a>    <span class="k">def</span> <span class="nf">getRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+<div class="viewcode-block" id="CheckedDict.getRange"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.getRange">[docs]</a>    <span class="k">def</span> <span class="nf">getRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns the valid range for the value corresponding to this key,</span>
 <span class="sd">        if it was specified.</span>
@@ -624,7 +630,7 @@
             <span class="k">return</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="s2">&quot;::range&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.getType"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getType">[docs]</a>    <span class="k">def</span> <span class="nf">getType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]]:</span>
+<div class="viewcode-block" id="CheckedDict.getType"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.getType">[docs]</a>    <span class="k">def</span> <span class="nf">getType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns the expected type for key, as a type which can be passed</span>
 <span class="sd">        to isinstance</span>
@@ -652,7 +658,7 @@
         <span class="k">return</span> <span class="nb">str</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">defaultval</span><span class="p">,</span>
                                  <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="n">defaultval</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.getTypestr"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getTypestr">[docs]</a>    <span class="k">def</span> <span class="nf">getTypestr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.getTypestr"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.getTypestr">[docs]</a>    <span class="k">def</span> <span class="nf">getTypestr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The same as `.getType` but returns a string representation of the type/types</span>
 <span class="sd">        possible for the value of this key</span>
@@ -664,14 +670,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="vm">__name__</span></div>
 
-<div class="viewcode-block" id="CheckedDict.reset"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.reset"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Resets the config to its default (inplace), and saves it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.update"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.update"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update ths dict with `d` or any key:value pair passed as keyword</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -686,13 +692,13 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;invalid keywords: </span><span class="si">{</span><span class="n">errormsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kws</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.override"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.override">[docs]</a>    <span class="k">def</span> <span class="nf">override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.override"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.override">[docs]</a>    <span class="k">def</span> <span class="nf">override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        The same as `value if value is not None else config.get(key, default)`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CheckedDict.asYaml"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.asYaml">[docs]</a>    <span class="k">def</span> <span class="nf">asYaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="CheckedDict.asYaml"><a class="viewcode-back" href="../../api/configdict.configdict.CheckedDict.html#configdict.configdict.CheckedDict.asYaml">[docs]</a>    <span class="k">def</span> <span class="nf">asYaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns this dict as yaml str, with comments, defaults, etc.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -700,7 +706,7 @@
                        <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="ConfigDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict">[docs]</a><span class="k">class</span> <span class="nc">ConfigDict</span><span class="p">(</span><span class="n">CheckedDict</span><span class="p">):</span>
+<div class="viewcode-block" id="ConfigDict"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict">[docs]</a><span class="k">class</span> <span class="nc">ConfigDict</span><span class="p">(</span><span class="n">CheckedDict</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This is a (optionally) persistent, unique dictionary used for configuration</span>
 <span class="sd">    of a module / app. It is saved under the config folder determined by</span>
@@ -869,7 +875,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 
-<div class="viewcode-block" id="ConfigDict.update"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.update"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update this dict with the values in d.</span>
 
@@ -895,7 +901,7 @@
         <span class="k">if</span> <span class="n">persistent</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="ConfigDict.copy"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigDict</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.copy"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigDict</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a copy if this ConfigDict. The resulting copy will be unnamed</span>
 <span class="sd">        and thus not persistent.</span>
@@ -905,7 +911,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cloneCallbacks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ConfigDict.clone"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cloneCallbacks</span><span class="o">=</span><span class="kc">False</span>
+<div class="viewcode-block" id="ConfigDict.clone"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cloneCallbacks</span><span class="o">=</span><span class="kc">False</span>
               <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigDict</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a clone of this dict</span>
@@ -933,7 +939,7 @@
                 <span class="n">out</span><span class="o">.</span><span class="n">registerCallback</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span></div>
 
-<div class="viewcode-block" id="ConfigDict.registerCallback"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.registerCallback">[docs]</a>    <span class="k">def</span> <span class="nf">registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span><span class="n">Callable</span><span class="p">[[</span><span class="n">ConfigDict</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.registerCallback"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.registerCallback">[docs]</a>    <span class="k">def</span> <span class="nf">registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span><span class="n">Callable</span><span class="p">[[</span><span class="n">ConfigDict</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Register a callback to be fired when a key matching the given pattern is</span>
 <span class="sd">        changed. If no pattern is given, the function will be called for</span>
@@ -955,12 +961,12 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ConfigDict.reset"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.reset"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot; Reset this dict to its default &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="ConfigDict.save"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.save"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Normally a config doesn&#39;t need to be saved by the user,</span>
 <span class="sd">        it is saved whenever it is modified.</span>
@@ -982,7 +988,7 @@
             <span class="n">yamlstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asYaml</span><span class="p">()</span>
             <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">yamlstr</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ConfigDict.dump"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ConfigDict.dump"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Dump this config to stdout &quot;&quot;&quot;</span>
         <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
@@ -1018,13 +1024,13 @@
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">header</span> <span class="o">+</span> <span class="n">tabulate</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ConfigDict.getPath"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.getPath">[docs]</a>    <span class="k">def</span> <span class="nf">getPath</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.getPath"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.getPath">[docs]</a>    <span class="k">def</span> <span class="nf">getPath</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot; Return the path this dict will be saved to &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span> <span class="o">=</span> <span class="n">configPathFromName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span></div>
 
-<div class="viewcode-block" id="ConfigDict.edit"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.edit">[docs]</a>    <span class="k">def</span> <span class="nf">edit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waitOnModified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.edit"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.edit">[docs]</a>    <span class="k">def</span> <span class="nf">edit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waitOnModified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Edit this config by opening it in an external application. The format</span>
 <span class="sd">        used is *yaml*, because it allows to embed comments. This is independent</span>
@@ -1055,7 +1061,7 @@
             <span class="n">_waitForClick</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ConfigDict.load"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configpath</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="ConfigDict.load"><a class="viewcode-back" href="../../api/configdict.configdict.ConfigDict.html#configdict.configdict.ConfigDict.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configpath</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Read the saved config, update self.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1181,7 +1187,7 @@
                 <span class="s2">&quot; It should contain letters, numbers and any of &#39;.&#39;, &#39;_&#39;, &#39;:&#39;&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="getConfig"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.getConfig">[docs]</a><span class="k">def</span> <span class="nf">getConfig</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="n">ConfigDict</span><span class="p">]:</span>
+<div class="viewcode-block" id="getConfig"><a class="viewcode-back" href="../../api/configdict.configdict.getConfig.html#configdict.configdict.getConfig">[docs]</a><span class="k">def</span> <span class="nf">getConfig</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="n">ConfigDict</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Retrieve a previously created ConfigDict. This will NOT load a saved config,</span>
 <span class="sd">    since for a ConfigDict to be properly defined a default config must accompany</span>
@@ -1200,7 +1206,7 @@
     <span class="k">return</span> <span class="n">ConfigDict</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="activeConfigs"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.activeConfigs">[docs]</a><span class="k">def</span> <span class="nf">activeConfigs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">]:</span>
+<div class="viewcode-block" id="activeConfigs"><a class="viewcode-back" href="../../api/configdict.configdict.activeConfigs.html#configdict.configdict.activeConfigs">[docs]</a><span class="k">def</span> <span class="nf">activeConfigs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a dict of active configs</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1219,7 +1225,7 @@
     <span class="k">return</span> <span class="kc">False</span>
 
 
-<div class="viewcode-block" id="configPathFromName"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.configPathFromName">[docs]</a><span class="k">def</span> <span class="nf">configPathFromName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;yaml&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="configPathFromName"><a class="viewcode-back" href="../../api/configdict.configdict.configPathFromName.html#configdict.configdict.configPathFromName">[docs]</a><span class="k">def</span> <span class="nf">configPathFromName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;yaml&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given a config name, return the path where it should be saved</span>
 

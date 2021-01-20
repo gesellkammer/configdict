@@ -6,7 +6,7 @@ import sys
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 2, 1)
+version = (0, 2, 2)
 
 setup(
     name='configdict',
@@ -30,7 +30,6 @@ setup(
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Natural Language :: English', 'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8'
     ],
 )

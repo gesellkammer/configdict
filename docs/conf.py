@@ -30,6 +30,7 @@ author = 'Eduardo Moguillansky'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx_automodapi.automodapi',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinx.ext.viewcode',
@@ -64,3 +65,6 @@ napoleon_use_rtype = False
 
 typehints_fully_qualified = False
 typehints_document_rtype = True
+
+# Autodoc
+autodoc_member_order = 'bysource'
