@@ -1,0 +1,1293 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>configdict.configdict &mdash; configdict  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> configdict
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/configdict.html">configdict package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">configdict</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>configdict.configdict</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for configdict.configdict</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">CheckedDict</span>
+<span class="sd">-----------</span>
+
+<span class="sd">A dictionary based on a default prototype. A CheckedDict can only define</span>
+<span class="sd">``key:value`` pairs which are already present in the default. It is possible to</span>
+<span class="sd">define a docstring for each key and different restrictions for the values</span>
+<span class="sd">regarding possible values, ranges and type. A CheckedDict is useful for</span>
+<span class="sd">configuration settings.</span>
+
+
+<span class="sd">ConfigDict</span>
+<span class="sd">----------</span>
+
+<span class="sd">Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is</span>
+<span class="sd">saved under the config folder determined by the OS and it is updated with each</span>
+<span class="sd">modification. It is useful for implementing configuration of a module / library</span>
+<span class="sd">/ app, where there is a default/initial state and the user needs to be able to</span>
+<span class="sd">configure global settings which must be persisted between sessions (similar to</span>
+<span class="sd">the settings in an application)</span>
+
+<span class="sd">Example::</span>
+
+
+<span class="sd">    from configdict import ConfigDict</span>
+
+<span class="sd">    config = ConfigDict(&quot;myproj.subproj&quot;)</span>
+<span class="sd">    config.addKey(&quot;keyA&quot;, 10, doc=&quot;documentaion of keyA&quot;)</span>
+<span class="sd">    config.addKey(&quot;keyB&quot;, 0.5, range=(0, 1))</span>
+<span class="sd">    config.addKey(&quot;keyC&quot;, &quot;blue&quot;, choices=(&quot;blue&quot;, &quot;red&quot;), doc=&quot;documentation of keyC&quot;)</span>
+<span class="sd">    config.load()</span>
+
+
+<span class="sd">Alternatively, a ConfigDict can be created all at once::</span>
+
+
+<span class="sd">    config = ConfigDict(&quot;myapp&quot;,</span>
+<span class="sd">        default = {</span>
+<span class="sd">            &#39;font-size&#39;: 10.0,</span>
+<span class="sd">            &#39;font-family&#39;: &quot;Monospace&quot;,</span>
+<span class="sd">            &#39;port&#39; : 9100,</span>
+<span class="sd">        },</span>
+<span class="sd">        validator = {</span>
+<span class="sd">            &#39;font-size::range&#39; : (8, 24),</span>
+<span class="sd">            &#39;port::range&#39; : (9000, 65000),</span>
+<span class="sd">            &#39;font-family::choices&#39; : {&#39;Roboto&#39;, &#39;Monospace&#39;},</span>
+<span class="sd">        },</span>
+<span class="sd">        docs = {</span>
+<span class="sd">            &#39;port&#39;: &#39;The port number to listen to&#39;,</span>
+<span class="sd">            &#39;font-size&#39;: &#39;The size of the font, in pixels&#39;</span>
+<span class="sd">        }</span>
+<span class="sd">    )</span>
+
+
+<span class="sd">This will create the dictionary and load any persisted version. Any saved</span>
+<span class="sd">modifications will override the default values. Whenever the user changes any</span>
+<span class="sd">value (via ``config[key] = newvalue``) the dictionary will be saved.</span>
+
+<span class="sd">In all other respects a ConfigDict behaves like a normal dictionary.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">appdirs</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">FunctionType</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Optional</span> <span class="k">as</span> <span class="n">Opt</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Callable</span><span class="p">)</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CheckedDict&quot;</span><span class="p">,</span> <span class="s2">&quot;ConfigDict&quot;</span><span class="p">,</span> <span class="s2">&quot;getConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;activeConfigs&quot;</span><span class="p">,</span> <span class="s2">&quot;configPathFromName&quot;</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;configdict&quot;</span><span class="p">)</span>
+
+<span class="n">_UNKNOWN</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_yamlComment</span><span class="p">(</span><span class="n">doc</span><span class="p">:</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">default</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+                 <span class="n">choices</span><span class="p">:</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">set</span><span class="p">],</span>
+                 <span class="n">valuerange</span><span class="p">:</span> <span class="n">Opt</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+                 <span class="n">valuetype</span><span class="p">:</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">maxwidth</span><span class="o">=</span><span class="mi">72</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This generated the yaml comments used when saving the config to yaml</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        doc: documentation for this key</span>
+<span class="sd">        default: the default value</span>
+<span class="sd">        choices: choices possible to this value</span>
+<span class="sd">        valuerange: a tuplet indicating a valid range for this value</span>
+<span class="sd">        valuetype: the type as string</span>
+<span class="sd">        maxwidth: the max. width of one line</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        the generated comment as a string. It might contain multiple lines</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">_</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">choices</span><span class="p">,</span> <span class="n">valuerange</span><span class="p">,</span> <span class="n">valuetype</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    # this is the documentation for bla</span>
+<span class="sd">    # default: xxx, choices: {10, 20, 30}, type: int, range: 0.0 - 1.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">infoparts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">doc</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">maxwidth</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;# </span><span class="si">{</span><span class="n">doc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="s2">&quot;# &quot;</span> <span class="o">+</span> <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">maxwidth</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">default</span><span class="p">:</span>
+        <span class="n">infoparts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;default: </span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">valuetype</span><span class="p">:</span>
+        <span class="n">infoparts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;type: </span><span class="si">{</span><span class="n">valuetype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">choices</span><span class="p">:</span>
+        <span class="n">infoparts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;choices: </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">valuerange</span><span class="p">:</span>
+        <span class="n">infoparts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;range: </span><span class="si">{</span><span class="n">valuerange</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">valuerange</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">infoparts</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;# ** &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">infoparts</span><span class="p">))</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_yamlValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_typeName</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">t</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">t</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected a str, type or tuple of types, got </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_asYaml</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+            <span class="n">doc</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+            <span class="n">default</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+            <span class="n">validator</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="n">items</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">pair</span><span class="p">:</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::choices&quot;</span><span class="p">)</span>
+        <span class="n">valuerange</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::range&quot;</span><span class="p">)</span>
+        <span class="n">valuetype</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::type&quot;</span><span class="p">)</span>
+        <span class="n">valuetypestr</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">if</span> <span class="n">valuetype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_typeName</span><span class="p">(</span><span class="n">valuetype</span><span class="p">)</span>
+        <span class="n">comment</span> <span class="o">=</span> <span class="n">_yamlComment</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span>
+                               <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span> <span class="n">valuerange</span><span class="o">=</span><span class="n">valuerange</span><span class="p">,</span>
+                               <span class="n">valuetype</span><span class="o">=</span><span class="n">valuetypestr</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">_yamlValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">l</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_checkValidator</span><span class="p">(</span><span class="n">validatordict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">defaultdict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks the validity of the validator itself, and makes any needed</span>
+<span class="sd">    postprocessing on the validator</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        validatordict: the validator dict</span>
+<span class="sd">        defaultdict: the dict containing defaults</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a postprocessed validator dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stripped_keys</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">validatordict</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+    <span class="n">not_present</span> <span class="o">=</span> <span class="n">stripped_keys</span><span class="o">-</span><span class="n">defaultdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">not_present</span><span class="p">):</span>
+        <span class="n">notpres</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">not_present</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The validator dict has keys not present &quot;</span>
+                       <span class="sa">f</span><span class="s2">&quot;in the defaultdict (</span><span class="si">{</span><span class="n">notpres</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">validatordict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;::choices&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">v</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">v</span>
+
+
+<span class="k">def</span> <span class="nf">_isfloaty</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;__float__&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_openInStandardApp</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open path with the app defined to handle it by the user</span>
+<span class="sd">    at the os level (xdg-open in linux, start in win, open in osx)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">subprocess</span>
+    <span class="n">platform</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span>
+    <span class="k">if</span> <span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;linux&#39;</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;xdg-open&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;win32&quot;</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">startfile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;darwin&quot;</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;open&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;platform </span><span class="si">{</span><span class="n">platform</span><span class="si">}</span><span class="s2"> not supported&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_waitOnFileModified</span><span class="p">(</span><span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">watchdog.observers</span> <span class="kn">import</span> <span class="n">Observer</span>
+        <span class="kn">from</span> <span class="nn">watchdog.events</span> <span class="kn">import</span> <span class="n">PatternMatchingEventHandler</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;watchdog is needed to be able to wait on file events. &quot;</span>
+                    <span class="s2">&quot;Install via `pip install watchdog`&quot;</span><span class="p">)</span>
+        <span class="n">_waitForClick</span><span class="p">()</span>
+        <span class="k">return</span> <span class="kc">False</span>
+        
+
+    <span class="n">directory</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">PatternMatchingEventHandler</span><span class="p">([</span><span class="n">base</span><span class="p">],</span> <span class="n">ignore_patterns</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                                          <span class="n">ignore_directories</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">observer</span> <span class="o">=</span> <span class="n">Observer</span><span class="p">()</span>
+    <span class="n">modified</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">on_modified</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+        <span class="k">nonlocal</span> <span class="n">modified</span>
+        <span class="n">modified</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">observer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+    <span class="n">handler</span><span class="o">.</span><span class="n">on_modified</span> <span class="o">=</span> <span class="n">on_modified</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">timeout</span> <span class="o">=</span> <span class="mi">360000</span>  <span class="c1"># 100 hours</span>
+    <span class="n">observer</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">modified</span>
+
+
+<span class="k">def</span> <span class="nf">_showInfoDialog</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a simple confirmation dialog box</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        msg: the message to display</span>
+<span class="sd">        title: a title for the window</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">tkinter</span> <span class="k">as</span> <span class="nn">tk</span>
+    <span class="kn">from</span> <span class="nn">tkinter</span> <span class="kn">import</span> <span class="n">messagebox</span>
+    <span class="n">window</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
+    <span class="n">window</span><span class="o">.</span><span class="n">wm_withdraw</span><span class="p">()</span>
+    <span class="n">messagebox</span><span class="o">.</span><span class="n">showinfo</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+    <span class="n">window</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_waitForClick</span><span class="p">(</span><span class="n">title</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">_showInfoDialog</span><span class="p">(</span><span class="s2">&quot;Click OK when finished editing&quot;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_openInEditor</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
+    <span class="n">_openInStandardApp</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CheckedDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict">[docs]</a><span class="k">class</span> <span class="nc">CheckedDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dictionary which checks that the keys and values are valid</span>
+<span class="sd">    according to a default dict and a validator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        default: a dict will all default values. A config can accept only</span>
+<span class="sd">            keys which are already present in the default</span>
+
+<span class="sd">        validator: a dict containing choices and types for the keys in the</span>
+<span class="sd">            default. Given a default like: ``{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}``,</span>
+<span class="sd">            a validator could be::</span>
+
+<span class="sd">                {&#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],</span>
+<span class="sd">                 &#39;keyB::type&#39;: float,</span>
+<span class="sd">                 &#39;keyC::range&#39;: (0, 1)</span>
+<span class="sd">                }</span>
+
+<span class="sd">            choices can be defined lazyly by giving a lambda which returns a list</span>
+<span class="sd">            of possible choices</span>
+
+<span class="sd">        docs: a dict containing help lines for keys defined in default</span>
+<span class="sd">        callback: function ``(key, value) -&gt; None``. This function is called **after**</span>
+<span class="sd">            the modification has been done.</span>
+<span class="sd">        precallback: function ``(key, value) -&gt; None``</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">default</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">validator</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">docs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">callback</span><span class="p">:</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">precallback</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">default</span> <span class="k">if</span> <span class="n">default</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span> <span class="o">=</span> <span class="n">_checkValidator</span><span class="p">(</span><span class="n">validator</span><span class="p">,</span>
+                                          <span class="n">default</span><span class="p">)</span> <span class="k">if</span> <span class="n">validator</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span> <span class="o">=</span> <span class="n">docs</span> <span class="k">if</span> <span class="n">docs</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">default</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_precallback</span> <span class="o">=</span> <span class="n">precallback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">callback</span>
+
+    <span class="k">def</span> <span class="nf">_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<div class="viewcode-block" id="CheckedDict.copy"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckedDict</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">CheckedDict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">,</span> <span class="n">docs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">,</span>
+                          <span class="n">precallback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_precallback</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="CheckedDict.diff"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a dict containing keys:values which differ from default</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">valuedefault</span> <span class="o">=</span> <span class="n">default</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="n">valuedefault</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="CheckedDict.addKey"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.addKey">[docs]</a>    <span class="k">def</span> <span class="nf">addKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+               <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+               <span class="nb">type</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">choices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="nb">range</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="n">doc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a ``key: value`` pair to the default settings. This is used when building the</span>
+<span class="sd">        default config item by item (see example). After adding all new keys it is</span>
+<span class="sd">        necessary to call ``.load()``</span>
+
+<span class="sd">        Example::</span>
+
+
+<span class="sd">            cfg = ConfigDict(&quot;foo&quot;, load=False)</span>
+<span class="sd">            # We define a default step by step</span>
+<span class="sd">            cfg.addKey(&quot;size&quot;, 100, range=(50, 150))</span>
+<span class="sd">            cfg.addKey(&quot;color&quot;, &quot;red&quot;, choices=(&quot;read&quot;, &quot;blue&quot;, &quot;green&quot;))</span>
+<span class="sd">            # Now update the dict with the newly defined default and any</span>
+<span class="sd">            # saved version</span>
+<span class="sd">            cfg.load()</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            key: a string key</span>
+<span class="sd">            value: a default value</span>
+<span class="sd">            type: the type accepted, as passed to isinstance (can be a tuple)</span>
+<span class="sd">            choices: a seq of possible values</span>
+<span class="sd">            range: a (min, max) tuple defining an allowed range for this value</span>
+<span class="sd">            doc: documentation for this key</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">validator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">:</span>
+            <span class="n">validator</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span>
+        <span class="k">if</span> <span class="n">choices</span><span class="p">:</span>
+            <span class="n">validator</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::choices&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">choices</span>
+        <span class="k">if</span> <span class="nb">range</span><span class="p">:</span>
+            <span class="n">validator</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">::range&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span>
+        <span class="k">if</span> <span class="n">doc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">doc</span></div>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">oldvalue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">oldvalue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">oldvalue</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">errormsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">errormsg</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">errormsg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precallback</span><span class="p">:</span>
+            <span class="n">newvalue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">oldvalue</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">newvalue</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">newvalue</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CheckedDict.checkDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.checkDict">[docs]</a>    <span class="k">def</span> <span class="nf">checkDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">invalidkeys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">invalidkeys</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Some keys are not valid: </span><span class="si">{</span><span class="n">invalidkeys</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">errormsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkValue</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">errormsg</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">errormsg</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="CheckedDict.getChoices"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getChoices">[docs]</a>    <span class="k">def</span> <span class="nf">getChoices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">list</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a seq. of possible values for key `k`</span>
+<span class="sd">        or `None`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> is not a valid key&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;getChoices: validator not set&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">key2</span> <span class="o">=</span> <span class="n">key</span><span class="o">+</span><span class="s2">&quot;::choices&quot;</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key2</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">choices</span><span class="p">,</span> <span class="n">FunctionType</span><span class="p">):</span>
+            <span class="n">realchoices</span> <span class="o">=</span> <span class="n">choices</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">[</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">realchoices</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">realchoices</span>
+        <span class="k">return</span> <span class="n">choices</span></div>
+
+<div class="viewcode-block" id="CheckedDict.getDoc"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getDoc">[docs]</a>    <span class="k">def</span> <span class="nf">getDoc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot; Get documentation for key (if present) &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.checkValue"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.checkValue">[docs]</a>    <span class="k">def</span> <span class="nf">checkValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if value is valid for key</span>
+
+<span class="sd">        Returns errormsg. If value is of correct type, errormsg is None</span>
+
+<span class="sd">        Example::</span>
+
+
+<span class="sd">            error = config.checkType(key, value)</span>
+<span class="sd">            if error:</span>
+<span class="sd">                print(error)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getChoices</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">choices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> should be one of </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getType</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_isfloaty</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Expected floatlike for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Expected str or bytes for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getRange</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;=</span><span class="n">value</span><span class="o">&lt;=</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Value for key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> should be within range </span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="CheckedDict.getRange"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getRange">[docs]</a>    <span class="k">def</span> <span class="nf">getRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the valid range for the value corresponding to this key,</span>
+<span class="sd">        if it was specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allowedkeys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> is not a valid key&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;getRange: validator not set&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="s2">&quot;::range&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.getType"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getType">[docs]</a>    <span class="k">def</span> <span class="nf">getType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span><span class="o">...</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the expected type for key, as a type which can be passed</span>
+<span class="sd">        to isinstance</span>
+
+<span class="sd">        **NB**: all numbers are reduced to type float, all strings are of type str,</span>
+<span class="sd">            otherwise the type of the default value, which can be a collection</span>
+<span class="sd">            like a list or a dict</span>
+
+<span class="sd">        See Also: `checkValue`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">definedtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">+</span><span class="s2">&quot;::type&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">definedtype</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">definedtype</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getChoices</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">choices</span><span class="p">:</span>
+                <span class="n">types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">choice</span><span class="p">)</span> <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">choices</span><span class="p">)))</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+        <span class="n">defaultval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">_UNKNOWN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">defaultval</span> <span class="ow">is</span> <span class="n">_UNKNOWN</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> is not present in default config. &quot;</span>
+                           <span class="sa">f</span><span class="s2">&quot;Possible keys: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">str</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">defaultval</span><span class="p">,</span>
+                                 <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="nb">type</span><span class="p">(</span><span class="n">defaultval</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.getTypestr"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.getTypestr">[docs]</a>    <span class="k">def</span> <span class="nf">getTypestr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The same as `.getType` but returns a string representation of the type/types</span>
+<span class="sd">        possible for the value of this key</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getType</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">t</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="vm">__name__</span></div>
+
+<div class="viewcode-block" id="CheckedDict.reset"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the config to its default (inplace), and saves it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.update"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update ths dict with `d` or any key:value pair passed as keyword</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">errormsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkDict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">errormsg</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dict is invalid: </span><span class="si">{</span><span class="n">errormsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kws</span><span class="p">:</span>
+            <span class="n">errormsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkDict</span><span class="p">(</span><span class="n">kws</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">errormsg</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;invalid keywords: </span><span class="si">{</span><span class="n">errormsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kws</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.override"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.override">[docs]</a>    <span class="k">def</span> <span class="nf">override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The same as `value if value is not None else config.get(key, default)`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CheckedDict.asYaml"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.CheckedDict.asYaml">[docs]</a>    <span class="k">def</span> <span class="nf">asYaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns this dict as yaml str, with comments, defaults, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_asYaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">,</span>
+                       <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ConfigDict"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict">[docs]</a><span class="k">class</span> <span class="nc">ConfigDict</span><span class="p">(</span><span class="n">CheckedDict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a (optionally) persistent, unique dictionary used for configuration</span>
+<span class="sd">    of a module / app. It is saved under the config folder determined by</span>
+<span class="sd">    the OS (and is thus OS dependent) and no two instances of the same</span>
+<span class="sd">    config can coexist.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: a str of the form ``prefix.name`` or ``prefix/name``</span>
+<span class="sd">            (these are the same) or simply ``name`` if this is an</span>
+<span class="sd">            isolated configuration (not part of a bigger project). The</span>
+<span class="sd">            data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if</span>
+<span class="sd">            prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.</span>
+<span class="sd">            For instance, in Linux a config with a name &quot;myproj.myconfig&quot; and</span>
+<span class="sd">            a yaml format will be saved to &quot;~/.config/mydir/myconfig.yaml&quot;</span>
+
+<span class="sd">        default: a dict with all default values. A config can accept only</span>
+<span class="sd">            keys which are already present in the default. This value can be</span>
+<span class="sd">            left as None if the config is built successively. See example below</span>
+
+<span class="sd">        validator: a dict containing choices, types and/or ranges for the keys in the</span>
+<span class="sd">            default. Given a default like: ``{&#39;keyA&#39;: &#39;foo&#39;, &#39;keyB&#39;: 20}``,</span>
+<span class="sd">            a validator could be::</span>
+
+<span class="sd">                {</span>
+<span class="sd">                  &#39;keyA::choices&#39;: [&#39;foo&#39;, &#39;bar&#39;],</span>
+<span class="sd">                  &#39;keyB::type&#39;: float,</span>
+<span class="sd">                  &#39;keyB::range&#39;: (10, 30)</span>
+<span class="sd">                }</span>
+
+
+<span class="sd">            Choices can be defined lazyly by giving a lambda</span>
+
+<span class="sd">        docs: a dict containing documentation for each key</span>
+
+<span class="sd">        persistent: if True, any change to the dict will be saved.</span>
+
+<span class="sd">        load: if True, the saved version will be loaded after creation. This is disabled if</span>
+<span class="sd">            no default dict is given. .load should be called manually in this case (see example)</span>
+
+<span class="sd">        precallback: function `(dict, key, oldvalue, newvalue) -&gt; None|newvalue`,</span>
+<span class="sd">            If given, it is called *before* the modification is done. This function</span>
+<span class="sd">            should return **None** to allow modification, **any value** to modify the value, or</span>
+<span class="sd">            **raise ValueError** to stop the transaction</span>
+
+
+<span class="sd">    Example::</span>
+
+
+<span class="sd">        config = ConfigDict(&quot;myproj.subproj&quot;)</span>
+<span class="sd">        config.addKey(&quot;keyA&quot;, 10, doc=&quot;documentaion of keyA&quot;)</span>
+<span class="sd">        config.addKey(&quot;keyB&quot;, 0.5, range=(0, 1))</span>
+<span class="sd">        config.addKey(&quot;keyC&quot;, &quot;blue&quot;, choices=(&quot;blue&quot;, &quot;red&quot;),</span>
+<span class="sd">                      doc=&quot;documentation of keyC&quot;)</span>
+<span class="sd">        config.load()</span>
+
+<span class="sd">        # The same effect can be achieved by passing the default/validator/doc</span>
+
+<span class="sd">        default = {</span>
+<span class="sd">            &quot;keyA&quot;: 10,</span>
+<span class="sd">            &quot;keyB&quot;: 0.5,</span>
+<span class="sd">            &quot;keyC&quot;: &quot;blue</span>
+<span class="sd">        }</span>
+
+<span class="sd">        validator = {</span>
+<span class="sd">            &quot;keyB::range&quot;: (0, 1),</span>
+<span class="sd">            &quot;keyC::choices&quot;: (&quot;blue&quot;, &quot;red&quot;)</span>
+<span class="sd">        }</span>
+
+<span class="sd">        docs = {</span>
+<span class="sd">            &quot;keyA&quot;: &quot;documentation of keyA&quot;</span>
+<span class="sd">            &quot;keyC&quot;: &quot;documentation of keyC&quot;</span>
+<span class="sd">        }</span>
+
+<span class="sd">        cfg = ConfigDict(&quot;myproj.subproj&quot;,</span>
+<span class="sd">                         default=default,</span>
+<span class="sd">                         validator=validator,</span>
+<span class="sd">                         docs=docs)</span>
+<span class="sd">        # no need to call .load in this case</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">registry</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">_helpwidth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">58</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">default</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">validator</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">docs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">precallback</span><span class="p">:</span><span class="n">Callable</span><span class="p">[[</span><span class="n">ConfigDict</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">persistent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">load</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;yaml&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">_normalizeName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_isValidName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is invalid for a config&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ConfigDict</span><span class="o">.</span><span class="n">registry</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;A ConfigDict with the given name already exists!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmt</span>
+
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">getConfig</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cfg</span> <span class="ow">and</span> <span class="n">default</span> <span class="o">!=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">default</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConfigDict: config with name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> already created&quot;</span>
+                           <span class="s2">&quot;with different defaults. It will be overwritten&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
+                         <span class="n">validator</span><span class="o">=</span><span class="n">validator</span><span class="p">,</span>
+                         <span class="n">docs</span><span class="o">=</span><span class="n">docs</span><span class="p">,</span>
+                         <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mycallback</span><span class="p">,</span>
+                         <span class="n">precallback</span><span class="o">=</span><span class="n">precallback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">persistent</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">persistent</span> <span class="o">=</span> <span class="n">persistent</span>
+
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">load</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Name has already been set&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is already used&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">base</span><span class="p">,</span> <span class="n">configname</span> <span class="o">=</span> <span class="n">_parseName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">base</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">persistent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span>
+
+    <span class="nd">@persistent</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">persistent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;A ConfigDict without namecannot be set to persistent&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ensureWritable</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_mycallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        own callback used to dispatch to any registered callbacks and save</span>
+<span class="sd">        self after any change</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+                <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ConfigDict.update"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kws</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update this dict with the values in d.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            d: values in this dictionary will overwrite values in self.</span>
+<span class="sd">                Keys not present in self will raise an exception</span>
+<span class="sd">            **kws: any key:value here will also be used to update self</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span> <span class="ow">or</span> <span class="n">kws</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">kws</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">errormsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkDict</span><span class="p">(</span><span class="n">kws</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">errormsg</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConfigDict: </span><span class="si">{</span><span class="n">errormsg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Reset the dict to a default by removing the file &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">getPath</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dict is invalid&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span><span class="p">,</span> <span class="n">persistent</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kws</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="n">persistent</span>
+        <span class="k">if</span> <span class="n">persistent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ConfigDict.copy"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigDict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a copy if this ConfigDict. The resulting copy will be unnamed</span>
+<span class="sd">        and thus not persistent.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            the copy of this dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cloneCallbacks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ConfigDict.clone"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">persistent</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cloneCallbacks</span><span class="o">=</span><span class="kc">False</span>
+              <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigDict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a clone of this dict</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: the name of the clone. If a name is not given, the clone cannot be</span>
+<span class="sd">                made persistent</span>
+<span class="sd">            persistent: given that this clone has a distinct name, should the clone be</span>
+<span class="sd">                made persitent?</span>
+<span class="sd">            cloneCallbacks: should the registered callbacks of the original (if any) be</span>
+<span class="sd">                also cloned?</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            the cloned dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is already taken!&quot;</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="n">validator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_validator</span><span class="p">,</span> <span class="n">docs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_docs</span><span class="p">,</span>
+                         <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">load</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">persistent</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">_persistent</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">cloneCallbacks</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">registerCallback</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="ConfigDict.registerCallback"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.registerCallback">[docs]</a>    <span class="k">def</span> <span class="nf">registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span><span class="n">Callable</span><span class="p">[[</span><span class="n">ConfigDict</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="n">pattern</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a callback to be fired when a key matching the given pattern is</span>
+<span class="sd">        changed. If no pattern is given, the function will be called for</span>
+<span class="sd">        every key.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            func: a function of the form ``(dict, key, value) -&gt; None``, where *dict* is</span>
+<span class="sd">                this ConfigDict itself, *key* is the key which was just changed and *value*</span>
+<span class="sd">                is the new value.</span>
+
+<span class="sd">            pattern: call func when pattern matches key.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">pattern</span> <span class="ow">or</span> <span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span> <span class="n">func</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_ensureWritable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Make sure that we can serialize this dict to disk &quot;&quot;&quot;</span>
+        <span class="n">folder</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getPath</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ConfigDict.reset"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Reset this dict to its default &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ConfigDict.save"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normally a config doesn&#39;t need to be saved by the user,</span>
+<span class="sd">        it is saved whenever it is modified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getPath</span><span class="p">()</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">assert</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;yaml&#39;</span><span class="p">}</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving config to </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span>
+        <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s1">&#39;yaml&#39;</span><span class="p">:</span>
+            <span class="n">yamlstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asYaml</span><span class="p">()</span>
+            <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">yamlstr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ConfigDict.dump"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Dump this config to stdout &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">tabulate</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Config: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getChoices</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">choices</span><span class="p">:</span>
+                <span class="n">choicestr</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">choicestr</span><span class="p">)</span><span class="o">&gt;</span><span class="bp">self</span><span class="o">.</span><span class="n">_helpwidth</span><span class="p">:</span>
+                    <span class="n">choiceslines</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">choicestr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helpwidth</span><span class="p">)</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">choiceslines</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">choicestr</span><span class="p">)</span>
+            <span class="n">keyrange</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getRange</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">keyrange</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;between </span><span class="si">{</span><span class="n">keyrange</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">typestr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTypestr</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">typestr</span><span class="p">)</span>
+            <span class="n">valuestr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">valuestr</span><span class="p">,</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">info</span><span class="p">)))</span>
+            <span class="n">doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getDoc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">doc</span><span class="p">:</span>
+                <span class="n">doclines</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_helpwidth</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">doclines</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">header</span> <span class="o">+</span> <span class="n">tabulate</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ConfigDict.getPath"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.getPath">[docs]</a>    <span class="k">def</span> <span class="nf">getPath</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Return the path this dict will be saved to &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span> <span class="o">=</span> <span class="n">configPathFromName</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fmt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configPath</span></div>
+
+<div class="viewcode-block" id="ConfigDict.edit"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.edit">[docs]</a>    <span class="k">def</span> <span class="nf">edit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waitOnModified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Edit this config by opening it in an external application. The format</span>
+<span class="sd">        used is *yaml*, because it allows to embed comments. This is independent</span>
+<span class="sd">        of the format used for persistence. The application used is the user&#39;s</span>
+<span class="sd">        default application for the .yaml format and can be configured at the</span>
+<span class="sd">        os level. In macos we use `open`, in linux `xdg-open` and in windows</span>
+<span class="sd">        `start`, which all respond to the user&#39;s own configuration regarding</span>
+<span class="sd">        default applications.</span>
+
+<span class="sd">        NB: a temporary file is created for editing. The persisted file is only</span>
+<span class="sd">        modified if the editing is accepted.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            waitOnModified: if True, the transaction is accepted whenever the</span>
+<span class="sd">                file being edited is saved. Otherwise a message box is created</span>
+<span class="sd">                which needs to be clicked in order to confirm the transaction.</span>
+<span class="sd">                Just exiting the application will not cancel the edit job since</span>
+<span class="sd">                many applications which have a server mode or unique instance</span>
+<span class="sd">                mode might in fact exit right away from the perspective of the</span>
+<span class="sd">                subprocess which launched them</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">configfile</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.yaml&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span>
+        <span class="n">_openInEditor</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">waitOnModified</span><span class="p">:</span>
+            <span class="n">_waitOnFileModified</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_waitForClick</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">configfile</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ConfigDict.load"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.ConfigDict.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configpath</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read the saved config, update self.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">configpath</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">configpath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getPath</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">configpath</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;No written config found, but default was not set&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">configpath</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using default config&quot;</span><span class="p">)</span>
+            <span class="n">confdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading config from disk: </span><span class="si">{</span><span class="n">configpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Default config not set&quot;</span><span class="p">)</span>
+
+            <span class="n">fmt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">configpath</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;.json&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">confdict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">configpath</span><span class="p">))</span>
+                <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                    <span class="n">error</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not read config </span><span class="si">{</span><span class="n">configpath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using default as fallback&quot;</span><span class="p">)</span>
+                    <span class="n">confdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+            <span class="k">elif</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;.yaml&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">configpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">confdict</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">Loader</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">SafeLoader</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not read config </span><span class="si">{</span><span class="n">configpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">confdict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;format </span><span class="si">{</span><span class="n">fmt</span><span class="si">}</span><span class="s2"> unknown, supported formats: json, yaml&quot;</span><span class="p">)</span>
+
+        <span class="c1"># only keys in default should be accepted, but keys in the read</span>
+        <span class="c1"># config should be discarded with a warning</span>
+        <span class="n">keysOnlyInRead</span> <span class="o">=</span> <span class="n">confdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">keysOnlyInRead</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConfigDict </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="si">}</span><span class="s2">, saved at </span><span class="si">{</span><span class="n">configpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;There are keys defined in the saved&quot;</span>
+                    <span class="s2">&quot; config which are not present in the default config. They will&quot;</span>
+                    <span class="s2">&quot; be skipped:&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">keysOnlyInRead</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># merge strategy:</span>
+        <span class="c1"># * if a key is shared between default and read dict, read dict has priority</span>
+        <span class="c1"># * if a key is present only in default, it is added</span>
+        <span class="n">confdict</span> <span class="o">=</span> <span class="n">_mergeDicts</span><span class="p">(</span><span class="n">confdict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkDict</span><span class="p">(</span><span class="n">confdict</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">confdict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_loaded</span> <span class="o">=</span> <span class="kc">True</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_makeName</span><span class="p">(</span><span class="n">configname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">base</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">configname</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">configname</span><span class="si">}</span><span class="s2">&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_mergeDicts</span><span class="p">(</span><span class="n">readdict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">default</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Merge readdict into default</span>
+<span class="sd">    Args:</span>
+<span class="sd">        readdict:</span>
+<span class="sd">        default:</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">sharedkeys</span> <span class="o">=</span> <span class="n">readdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sharedkeys</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">readdict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="n">onlyInDefault</span> <span class="o">=</span> <span class="n">default</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">readdict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">onlyInDefault</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_parseName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Opt</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns (configname, base) (which can be None)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">configname</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">base</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+        <span class="n">configname</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">base</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">base</span><span class="p">,</span> <span class="n">configname</span>
+
+
+<span class="k">def</span> <span class="nf">_isValidName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[a-zA-Z0-9\.\:_]+&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+
+<span class="k">def</span> <span class="nf">_normalizeName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Originally a name would be of the form project:name,</span>
+<span class="sd">    later on we enabled / and . to act as path separator</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span>
+
+
+<span class="k">def</span> <span class="nf">_checkName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    check if name is a valid name for a config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_isValidName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not a valid name for a config.&quot;</span>
+                <span class="s2">&quot; It should contain letters, numbers and any of &#39;.&#39;, &#39;_&#39;, &#39;:&#39;&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="getConfig"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.getConfig">[docs]</a><span class="k">def</span> <span class="nf">getConfig</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Opt</span><span class="p">[</span><span class="n">ConfigDict</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a previously created ConfigDict. This will NOT load a saved config,</span>
+<span class="sd">    since for a ConfigDict to be properly defined a default config must accompany</span>
+<span class="sd">    the saved version. In order to load a saved config as default just load it as</span>
+<span class="sd">    a normal .yaml or .json file and use that dict as the default.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: the unique id of the configuration, as passed to ConfigDict</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        the ConfigDict, if found. None otherwise.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">_normalizeName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">_checkName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ConfigDict</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="activeConfigs"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.activeConfigs">[docs]</a><span class="k">def</span> <span class="nf">activeConfigs</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a dict of active configs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ConfigDict</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+
+<span class="k">def</span> <span class="nf">_removeConfigFromDisk</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove the given config from disc, returns True if it was found and removed,</span>
+<span class="sd">    False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">configpath</span> <span class="o">=</span> <span class="n">configPathFromName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">configpath</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">configpath</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="configPathFromName"><a class="viewcode-back" href="../../source/configdict.html#configdict.configdict.configPathFromName">[docs]</a><span class="k">def</span> <span class="nf">configPathFromName</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;yaml&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a config name, return the path where it should be saved</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: the name of this config, with the format [prefix.]name</span>
+<span class="sd">        fmt: the format of the config (valid options: json, yaml)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        the path corresponding to this config name</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">_normalizeName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">userconfigdir</span> <span class="o">=</span> <span class="n">appdirs</span><span class="o">.</span><span class="n">user_config_dir</span><span class="p">()</span>
+    <span class="n">base</span><span class="p">,</span> <span class="n">configname</span> <span class="o">=</span> <span class="n">_parseName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+        <span class="n">configfile</span> <span class="o">=</span> <span class="n">configname</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span>
+    <span class="k">elif</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s1">&#39;yaml&#39;</span><span class="p">:</span>
+        <span class="n">configfile</span> <span class="o">=</span> <span class="n">configname</span> <span class="o">+</span> <span class="s1">&#39;.yaml&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Formats supported: json, yaml&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">base</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">configdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">userconfigdir</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">configdir</span> <span class="o">=</span> <span class="n">userconfigdir</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">configdir</span><span class="p">,</span> <span class="n">configfile</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Eduardo Moguillansky.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
