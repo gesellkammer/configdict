@@ -1,0 +1,6 @@
+*.egg-info
+.mypy*
+.idea
+dist
+*.pyc
+_*
