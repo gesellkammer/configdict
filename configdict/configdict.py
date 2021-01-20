@@ -1,5 +1,6 @@
 """
-## CheckedDict
+CheckedDict
+-----------
 
 A dictionary based on a default prototype. A CheckedDict can only define
 ``key:value`` pairs which are already present in the default. It is possible to
@@ -8,7 +9,8 @@ regarding possible values, ranges and type. A CheckedDict is useful for
 configuration settings.
 
 
-## ConfigDict
+ConfigDict
+----------
 
 Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is
 saved under the config folder determined by the OS and it is updated with each
@@ -17,18 +19,19 @@ modification. It is useful for implementing configuration of a module / library
 configure global settings which must be persisted between sessions (similar to
 the settings in an application)
 
-## Example
+Example::
 
+
+    from configdict import ConfigDict
 
     config = ConfigDict("myproj.subproj")
     config.addKey("keyA", 10, doc="documentaion of keyA")
     config.addKey("keyB", 0.5, range=(0, 1))
-    config.addKey("keyC", "blue", choices=("blue", "red"),
-                  doc="documentation of keyC")
+    config.addKey("keyC", "blue", choices=("blue", "red"), doc="documentation of keyC")
     config.load()
 
 
-Alternatively, a ConfigDict can be created all at once:
+Alternatively, a ConfigDict can be created all at once::
 
 
     config = ConfigDict("myapp",
@@ -270,11 +273,31 @@ def _openInEditor(cfg):
     _openInStandardApp(cfg)
 
 
-
 class CheckedDict(dict):
     """
     A dictionary which checks that the keys and values are valid
     according to a default dict and a validator.
+
+    Args:
+        default: a dict will all default values. A config can accept only
+            keys which are already present in the default
+
+        validator: a dict containing choices and types for the keys in the
+            default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
+            a validator could be::
+
+                {'keyA::choices': ['foo', 'bar'],
+                 'keyB::type': float,
+                 'keyC::range': (0, 1)
+                }
+
+            choices can be defined lazyly by giving a lambda which returns a list
+            of possible choices
+
+        docs: a dict containing help lines for keys defined in default
+        callback: function ``(key, value) -> None``. This function is called **after**
+            the modification has been done.
+        precallback: function ``(key, value) -> None``
     """
     def __init__(self,
                  default: Dict[str, Any] = None,
@@ -282,29 +305,7 @@ class CheckedDict(dict):
                  docs: Dict[str, str] = None,
                  callback:Callable[[str, Any], None]=None,
                  precallback=None) -> None:
-        """
 
-        Args:
-            default: a dict will all default values. A config can accept only
-                keys which are already present in the default
-
-            validator: a dict containing choices and types for the keys in the
-                default. Given a default like: `{'keyA': 'foo', 'keyB': 20}`,
-                a validator could be:
-
-                    {'keyA::choices': ['foo', 'bar'],
-                     'keyB::type': float,
-                     'keyC::range': (0, 1)
-                    }
-
-                choices can be defined lazyly by giving a lambda which returns a list
-                of possible choices
-
-            docs: a dict containing help lines for keys defined in default
-            callback: function `(key, value) -> None`. This function is called **after**
-                the modification has been done.
-            precallback: function `(key, value) -> None`
-        """
         self.default = default if default else {}
         self._validator = _checkValidator(validator,
                                           default) if validator else {}
@@ -341,11 +342,11 @@ class CheckedDict(dict):
                range: Tuple[Any, Any] = None,
                doc: str = None) -> None:
         """
-        Add a `key: value` pair to the default settings. This is used when building the
+        Add a ``key: value`` pair to the default settings. This is used when building the
         default config item by item (see example). After adding all new keys it is
-        necessary to call `.load()`
+        necessary to call ``.load()``
 
-        ## Example:
+        Example::
 
 
             cfg = ConfigDict("foo", load=False)
@@ -435,7 +436,7 @@ class CheckedDict(dict):
 
         Returns errormsg. If value is of correct type, errormsg is None
 
-        ## Example:
+        Example::
 
 
             error = config.checkType(key, value)
@@ -552,7 +553,82 @@ class ConfigDict(CheckedDict):
     of a module / app. It is saved under the config folder determined by
     the OS (and is thus OS dependent) and no two instances of the same
     config can coexist.
+
+    Args:
+        name: a str of the form ``prefix.name`` or ``prefix/name``
+            (these are the same) or simply ``name`` if this is an
+            isolated configuration (not part of a bigger project). The
+            data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if
+            prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
+            For instance, in Linux a config with a name "myproj.myconfig" and
+            a yaml format will be saved to "~/.config/mydir/myconfig.yaml"
+
+        default: a dict with all default values. A config can accept only
+            keys which are already present in the default. This value can be
+            left as None if the config is built successively. See example below
+
+        validator: a dict containing choices, types and/or ranges for the keys in the
+            default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
+            a validator could be::
+
+                {
+                  'keyA::choices': ['foo', 'bar'],
+                  'keyB::type': float,
+                  'keyB::range': (10, 30)
+                }
+
+
+            Choices can be defined lazyly by giving a lambda
+
+        docs: a dict containing documentation for each key
+
+        persistent: if True, any change to the dict will be saved.
+
+        load: if True, the saved version will be loaded after creation. This is disabled if
+            no default dict is given. .load should be called manually in this case (see example)
+
+        precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
+            If given, it is called *before* the modification is done. This function
+            should return **None** to allow modification, **any value** to modify the value, or
+            **raise ValueError** to stop the transaction
+
+
+    Example::
+
+
+        config = ConfigDict("myproj.subproj")
+        config.addKey("keyA", 10, doc="documentaion of keyA")
+        config.addKey("keyB", 0.5, range=(0, 1))
+        config.addKey("keyC", "blue", choices=("blue", "red"),
+                      doc="documentation of keyC")
+        config.load()
+
+        # The same effect can be achieved by passing the default/validator/doc
+
+        default = {
+            "keyA": 10,
+            "keyB": 0.5,
+            "keyC": "blue
+        }
+
+        validator = {
+            "keyB::range": (0, 1),
+            "keyC::choices": ("blue", "red")
+        }
+
+        docs = {
+            "keyA": "documentation of keyA"
+            "keyC": "documentation of keyC"
+        }
+
+        cfg = ConfigDict("myproj.subproj",
+                         default=default,
+                         validator=validator,
+                         docs=docs)
+        # no need to call .load in this case
+
     """
+
     registry: Dict[str, ConfigDict] = {}
     _helpwidth: int = 58
 
@@ -565,81 +641,7 @@ class ConfigDict(CheckedDict):
                  persistent=True,
                  load=True,
                  fmt='yaml') -> None:
-        """
-        Args:
-            name: a str of the form ``prefix.name`` or ``prefix/name``
-                (these are the same) or simply ``name`` if this is an
-                isolated configuration (not part of a bigger project). The
-                data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if 
-                prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
-                For instance, in Linux a config with a name "myproj.myconfig" and 
-                a yaml format will be saved to "~/.config/mydir/myconfig.yaml" 
 
-            default: a dict with all default values. A config can accept only
-                keys which are already present in the default. This value can be
-                left as None if the config is built successively. See example below
-
-            validator: a dict containing choices, types and/or ranges for the keys in the
-                default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
-                a validator could be:
-
-
-                    {
-                      'keyA::choices': ['foo', 'bar'],
-                      'keyB::type': float,
-                      'keyB::range': (10, 30)
-                    }
-
-
-                Choices can be defined lazyly by giving a lambda
-                
-            docs: a dict containing documentation for each key
-            
-            persistent: if True, any change to the dict will be saved. 
-            
-            load: if True, the saved version will be loaded after creation. This is disabled if 
-                no default dict is given. .load should be called manually in this case (see example)
-
-            precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
-                If given, it is called *before* the modification is done. This function
-                should return **None** to allow modification, **any value** to modify the value, or
-                **raise ValueError** to stop the transaction
-
-        ## Example:
-
-
-            config = ConfigDict("myproj.subproj")
-            config.addKey("keyA", 10, doc="documentaion of keyA")
-            config.addKey("keyB", 0.5, range=(0, 1))
-            config.addKey("keyC", "blue", choices=("blue", "red"),
-                          doc="documentation of keyC")
-            config.load()
-
-            # The same effect can be achieved by passing the default/validator/doc 
-
-            default = {
-                "keyA": 10,
-                "keyB": 0.5,
-                "keyC": "blue
-            }
-
-            validator = {
-                "keyB::range": (0, 1),
-                "keyC::choices": ("blue", "red")
-            }
-
-            docs = {
-                "keyA": "documentation of keyA"
-                "keyC": "documentation of keyC"
-            }
-
-            cfg = ConfigDict("myproj.subproj",
-                             default=default,
-                             validator=validator,
-                             docs=docs)
-            # no need to call .load in this case
-
-        """
         if name:
             name = _normalizeName(name)
             if not _isValidName(name):
