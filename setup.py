@@ -23,7 +23,7 @@ setup(
         "setuptools",
         "appdirs",
         "tabulate",
-        "PyYAML"
+        "PyYAML",
     ],
     license="BSD",
     zip_safe=False,
