@@ -1,1 +1,4 @@
+appdirs
+tabulate
+PyYAML
 sphinx-autodoc-typehints
