@@ -1,6 +1,20 @@
 configdict
 ==========
 
+Documentation
+-------------
+
+https://configdict.readthedocs.io/en/latest/index.html
+
+
+Installation
+------------
+
+
+    $ pip install configdict
+
+
+
 CheckedDict
 -----------
 
