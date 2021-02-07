@@ -447,7 +447,7 @@ class CheckedDict(dict):
             The validate function, or None
 
         """
-        func = self._validator(key, None)
+        func = self._validator.get(key, None)
         assert func is None or callable(func)
         return func
 
