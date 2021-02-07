@@ -10,10 +10,16 @@ This package provides two classes, :class:`CheckedDict` and :class:`ConfigDict`,
 which allow to define a dict with default values and a set of allowed keys.
 Any modification to the dict can be validated against a set of rules.
 
-   
+
+.. toctree::
+   :maxdepth: 3
+
+      
 .. automodapi:: configdict.configdict
-
+     :inherited-members:
    
 
-
-
+#.. autoclass:: configdict.configdict.ConfigDict
+#    :members:
+#    :show-inheritance:
+#    :inherited-members:

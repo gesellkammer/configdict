@@ -44,6 +44,7 @@ Alternatively, a ConfigDict can be created all at once::
             'font-size::range' : (8, 24),
             'port::range' : (9000, 65000),
             'font-family::choices' : {'Roboto', 'Monospace'},
+            'port': lambda cfg, port: checkPortAvailable(port)
         },
         docs = {
             'port': 'The port number to listen to',
@@ -71,12 +72,15 @@ import re
 import textwrap
 import tempfile
 from types import FunctionType
-from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable)
+from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable, TypeVar)
 
 
 __all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPathFromName"]
 
 logger = logging.getLogger("configdict")
+
+validatefunc_t = Callable[[dict, Any], bool]
+T = TypeVar("T")
 
 _UNKNOWN = object()
 
@@ -283,11 +287,12 @@ class CheckedDict(dict):
             keys which are already present in the default
 
         validator: a dict containing choices and types for the keys in the
-            default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
+            default. Given a default like: ``{'keyA': 'foo', 'keyB': 20, 'keyC': 0.5}``,
             a validator could be::
 
                 {'keyA::choices': ['foo', 'bar'],
                  'keyB::type': float,
+                 'keyB': lambda d, value: value > d['keyC'] * 10
                  'keyC::range': (0, 1)
                 }
 
@@ -318,6 +323,9 @@ class CheckedDict(dict):
         self._allowedkeys = set(self.default.keys())
 
     def copy(self) -> CheckedDict:
+        """
+        Create a copy of this CheckedDict
+        """
         out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
                           precallback=self._precallback, callback=self._callback)
         return out
@@ -340,6 +348,7 @@ class CheckedDict(dict):
                type: Union[type, Tuple[type,...]]=None,
                choices=None,
                range: Tuple[Any, Any] = None,
+               validatefunc: validatefunc_t = None,
                doc: str = None) -> None:
         """
         Add a ``key: value`` pair to the default settings. This is used when building the
@@ -351,8 +360,11 @@ class CheckedDict(dict):
 
             cfg = ConfigDict("foo", load=False)
             # We define a default step by step
-            cfg.addKey("size", 100, range=(50, 150))
+            cfg.addKey("width", 100, range=(50, 150))
             cfg.addKey("color", "red", choices=("read", "blue", "green"))
+            cfg.addKey("height",
+                       doc="Height should be higher than width",
+                       validatefunc=lambda cfg, height: height > cfg['width'])
             # Now update the dict with the newly defined default and any
             # saved version
             cfg.load()
@@ -363,6 +375,8 @@ class CheckedDict(dict):
             type: the type accepted, as passed to isinstance (can be a tuple)
             choices: a seq of possible values
             range: a (min, max) tuple defining an allowed range for this value
+            validatefunc: a function ``(config, value) -> bool``, which should return
+                `True` if value is valid for `key` or False otherwise
             doc: documentation for this key
 
         """
@@ -375,6 +389,9 @@ class CheckedDict(dict):
             validator[f"{key}::choices"] = choices
         if range:
             validator[f"{key}::range"] = range
+        if validatefunc:
+            assert callable(validatefunc)
+            validator[key] = validatefunc
         if doc:
             self._docs[key] = doc
 
@@ -398,6 +415,17 @@ class CheckedDict(dict):
             self._callback(key, value)
 
     def checkDict(self, d: dict) -> str:
+        """
+        Check if dict `d` can be used to update self
+
+        Args:
+            d (dict): a dict which might update self
+
+        Returns:
+            An error message if `d` has any invalid `key` or `value`,
+            "" if everything is ok
+
+        """
         invalidkeys = [key for key in d if key not in self.default]
         if invalidkeys:
             return f"Some keys are not valid: {invalidkeys}"
@@ -406,6 +434,22 @@ class CheckedDict(dict):
             if errormsg:
                 return errormsg
         return ""
+
+    def getValidateFunc(self, key:str) -> Opt[validatefunc_t]:
+        """
+        Returns a function to validate a value for `key`, if there
+        is one. A validate function has the form ``(config, value) -> bool``
+
+        Args:
+            key (str): the key to query for a validate function
+
+        Returns:
+            The validate function, or None
+
+        """
+        func = self._validator(key, None)
+        assert func is None or callable(func)
+        return func
 
     def getChoices(self, key: str) -> Opt[list]:
         """
@@ -438,7 +482,6 @@ class CheckedDict(dict):
 
         Example::
 
-
             error = config.checkType(key, value)
             if error:
                 print(error)
@@ -446,6 +489,11 @@ class CheckedDict(dict):
         choices = self.getChoices(key)
         if choices is not None and value not in choices:
             return f"key {key} should be one of {choices}, got {value}"
+        func = self.getValidateFunc(key)
+        if func:
+            ok = func(self, value)
+            if not ok:
+                return f"{value} is not valid for key {key}"
         t = self.getType(key)
         if t == float:
             if not _isfloaty(value):
@@ -532,6 +580,13 @@ class CheckedDict(dict):
             if errormsg:
                 raise ValueError(f"invalid keywords: {errormsg}")
             super().update(kws)
+
+    def updated(self:T, d: dict=None, **kws) -> T:
+        """
+        The same as :meth:`~CheckedDict.update`, but returns self after the operation
+        """
+        self.update(d, **kws)
+        return self
 
     def override(self, key: str, value, default=None) -> None:
         """
@@ -629,7 +684,8 @@ class ConfigDict(CheckedDict):
 
     """
 
-    registry: Dict[str, ConfigDict] = {}
+    _registry: Dict[str, ConfigDict] = {}
+
     _helpwidth: int = 58
 
     def __init__(self,
@@ -646,7 +702,7 @@ class ConfigDict(CheckedDict):
             name = _normalizeName(name)
             if not _isValidName(name):
                 raise ValueError(f"name {name} is invalid for a config")
-        if name in ConfigDict.registry:
+        if name in ConfigDict._registry:
             logger.warning("A ConfigDict with the given name already exists!")
         self.fmt = fmt
 
@@ -679,6 +735,10 @@ class ConfigDict(CheckedDict):
 
     @property
     def name(self) -> Opt[str]:
+        """
+        The name of this ConfigDict. The name determines where it is saved
+        (if persist==True)
+        """
         return self._name
 
     @name.setter
@@ -686,15 +746,16 @@ class ConfigDict(CheckedDict):
         if self._name:
             raise ValueError("Name has already been set")
 
-        if name and name in self.registry:
+        if name and name in self._registry:
             raise ValueError(f"Name {name} is already used")
         self._name = name
         base, configname = _parseName(name)
         self._base: str = base
-        self.registry[name] = self
+        self._registry[name] = self
 
     @property
     def persistent(self) -> bool:
+        """Is this a persistent ConfigDict?"""
         return self._persistent
 
     @persistent.setter
@@ -752,7 +813,7 @@ class ConfigDict(CheckedDict):
         """
         return self.clone(name='', persistent=False, cloneCallbacks=False)
 
-    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=False
+    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=False,
               ) -> ConfigDict:
         """
         Create a clone of this dict
@@ -768,7 +829,7 @@ class ConfigDict(CheckedDict):
         Returns:
             the cloned dict
         """
-        if name == self._name or name in self.registry:
+        if name == self._name or name in self._registry:
             raise ValueError(f"name {name} is already taken!")
         out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
                          persistent=False, load=False, name=name)
@@ -811,6 +872,11 @@ class ConfigDict(CheckedDict):
         """
         Normally a config doesn't need to be saved by the user,
         it is saved whenever it is modified.
+
+        Args:
+            path (str): the path to save the config. If None and this
+                is a named config, it is saved to the path returned by
+                :meth:`~ConfigDict.getPath`
         """
         if path is None:
             path = self.getPath()
@@ -974,7 +1040,7 @@ def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, 
         default:
 
     Returns:
-
+        the merged dict
     """
     out = {}
     sharedkeys = readdict.keys() & default.keys()
@@ -1044,14 +1110,14 @@ def getConfig(name: str) -> Opt[ConfigDict]:
     """
     name = _normalizeName(name)
     _checkName(name)
-    return ConfigDict.registry.get(name)
+    return ConfigDict._registry.get(name)
 
 
 def activeConfigs() -> Dict[str, ConfigDict]:
     """
     Returns a dict of active configs
     """
-    return ConfigDict.registry.copy()
+    return ConfigDict._registry.copy()
 
 
 def _removeConfigFromDisk(name: str) -> bool:

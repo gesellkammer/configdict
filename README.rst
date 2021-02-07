@@ -4,7 +4,7 @@ configdict
 Documentation
 -------------
 
-https://configdict.readthedocs.io/en/latest/index.html
+https://configdict.readthedocs.io
 
 
 Installation

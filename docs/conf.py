@@ -64,7 +64,11 @@ pygments_style = "friendly"
 napoleon_use_rtype = False
 
 typehints_fully_qualified = False
+
+autodoc_default_flags = ['inherited-members']
 typehints_document_rtype = True
 
 # Autodoc
 autodoc_member_order = 'bysource'
+
+automodsumm_inherited_members = True
