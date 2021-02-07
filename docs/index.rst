@@ -18,8 +18,3 @@ Any modification to the dict can be validated against a set of rules.
 .. automodapi:: configdict.configdict
      :inherited-members:
    
-
-#.. autoclass:: configdict.configdict.ConfigDict
-#    :members:
-#    :show-inheritance:
-#    :inherited-members:
