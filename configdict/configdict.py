@@ -151,11 +151,13 @@ def _asYaml(d: Dict[str, Any],
             doc: Dict[str, str],
             default: Dict[str, Any],
             validator: Dict[str, Any]=None,
+            sortKeys=False
             ) -> str:
     lines = []
 
     items = list(d.items())
-    items.sort(key=lambda pair: pair[0])
+    if sortKeys:
+        items.sort(key=lambda pair: pair[0])
 
     for key, value in items:
         choices = validator.get(f"{key}::choices")
@@ -594,12 +596,12 @@ class CheckedDict(dict):
         """
         return value if value is not None else self.get(key, default)
 
-    def asYaml(self) -> str:
+    def asYaml(self, sort=False) -> str:
         """
         Returns this dict as yaml str, with comments, defaults, etc.
         """
         return _asYaml(self, doc=self._docs, validator=self._validator,
-                       default=self.default)
+                       default=self.default, sort=sort)
 
 
 class ConfigDict(CheckedDict):
@@ -696,7 +698,8 @@ class ConfigDict(CheckedDict):
                  precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
                  persistent=True,
                  load=True,
-                 fmt='yaml') -> None:
+                 fmt='yaml',
+                 sortKeys=True) -> None:
 
         if name:
             name = _normalizeName(name)
@@ -721,6 +724,7 @@ class ConfigDict(CheckedDict):
         self._configPath = None
         self._callbacks = []
         self._loaded = False
+        self.sortKeys = sortKeys
 
         if name:
             self.name = name
@@ -877,6 +881,7 @@ class ConfigDict(CheckedDict):
             path (str): the path to save the config. If None and this
                 is a named config, it is saved to the path returned by
                 :meth:`~ConfigDict.getPath`
+            sortKeys: if True, the keys are sorted when saving
         """
         if path is None:
             path = self.getPath()
@@ -892,7 +897,7 @@ class ConfigDict(CheckedDict):
             with open(path, "w") as f:
                 json.dump(self, f, indent=True, sort_keys=True)
         elif fmt == 'yaml':
-            yamlstr = self.asYaml()
+            yamlstr = self.asYaml(sortKeys=self.sortKeys)
             open(path, "w").write(yamlstr)
 
     def dump(self):
