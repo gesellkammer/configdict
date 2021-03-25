@@ -596,12 +596,12 @@ class CheckedDict(dict):
         """
         return value if value is not None else self.get(key, default)
 
-    def asYaml(self, sort=False) -> str:
+    def asYaml(self, sortKeys=False) -> str:
         """
         Returns this dict as yaml str, with comments, defaults, etc.
         """
         return _asYaml(self, doc=self._docs, validator=self._validator,
-                       default=self.default, sort=sort)
+                       default=self.default, sortKeys=sortKeys)
 
 
 class ConfigDict(CheckedDict):
@@ -648,6 +648,8 @@ class ConfigDict(CheckedDict):
             If given, it is called *before* the modification is done. This function
             should return **None** to allow modification, **any value** to modify the value, or
             **raise ValueError** to stop the transaction
+
+        sortKeys: if True, keys are sorted whenever the dict is saved/edited. 
 
 
     Example::
@@ -699,7 +701,7 @@ class ConfigDict(CheckedDict):
                  persistent=True,
                  load=True,
                  fmt='yaml',
-                 sortKeys=True) -> None:
+                 sortKeys=False) -> None:
 
         if name:
             name = _normalizeName(name)
@@ -985,30 +987,30 @@ class ConfigDict(CheckedDict):
                         "No written config found, but default was not set")
                 raise FileNotFoundError(f"{configpath} not found")
             logger.debug("Using default config")
-            confdict = self.default
-        else:
-            logger.debug(f"Reading config from disk: {configpath}")
-            if self.default is None:
-                raise ValueError("Default config not set")
+            super().update(self.default)
+            return
+        logger.debug(f"Reading config from disk: {configpath}")
+        if self.default is None:
+            raise ValueError("Default config not set")
 
-            fmt = os.path.splitext(configpath)[1]
-            if fmt == ".json":
-                try:
-                    confdict = json.load(open(configpath))
-                except json.JSONDecodeError:
-                    error = sys.exc_info()[0]
-                    logger.error(f"Could not read config {configpath}: {error}")
-                    logger.debug("Using default as fallback")
-                    confdict = self.default
-            elif fmt == ".yaml":
-                try:
-                    with open(configpath) as f:
-                        confdict = yaml.load(f, Loader=yaml.SafeLoader)
-                except:
-                    logger.error(f"Could not read config {configpath}")
-                    confdict = self.default
-            else:
-                raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
+        fmt = os.path.splitext(configpath)[1]
+        if fmt == ".json":
+            try:
+                confdict = json.load(open(configpath))
+            except json.JSONDecodeError:
+                error = sys.exc_info()[0]
+                logger.error(f"Could not read config {configpath}: {error}")
+                logger.debug("Using default as fallback")
+                confdict = self.default
+        elif fmt == ".yaml":
+            try:
+                with open(configpath) as f:
+                    confdict = yaml.load(f, Loader=yaml.SafeLoader)
+            except:
+                logger.error(f"Could not read config {configpath}")
+                confdict = self.default
+        else:
+            raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
 
         # only keys in default should be accepted, but keys in the read
         # config should be discarded with a warning
@@ -1024,9 +1026,11 @@ class ConfigDict(CheckedDict):
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
-        confdict = _mergeDicts(confdict, self.default)
+        
         self.checkDict(confdict)
-        super().update(confdict)
+        self.checkDict(self.default)
+        super().update(self.default)
+        self.update(confdict)
         self._loaded = True
 
 
