@@ -802,7 +802,7 @@ class ConfigDict(CheckedDict):
             logger.error(
                     f"Reset the dict to a default by removing the file '{self.getPath()}'"
             )
-            raise ValueError("dict is invalid")
+            raise ValueError(f"dict is invalid: {errormsg}")
         self._persistent, persistent = False, self._persistent
         super().update(kws)
         self._persistent = persistent
@@ -890,7 +890,7 @@ class ConfigDict(CheckedDict):
             fmt = self.fmt
         else:
             fmt = os.path.splitext(path)[1][1:]
-            assert fmt in {'json', 'yaml'}
+            assert fmt in {'json', 'yaml', 'csv'}
 
         logger.debug(f"Saving config to {path}")
         if fmt is None:
@@ -901,11 +901,49 @@ class ConfigDict(CheckedDict):
         elif fmt == 'yaml':
             yamlstr = self.asYaml(sortKeys=self.sortKeys)
             open(path, "w").write(yamlstr)
+        elif fmt == 'csv':
+            csvstr = self.asCsv()
+            open(path, "w").write(csvstr)
 
     def dump(self):
         """ Dump this config to stdout """
         print(str(self))
 
+    def _asRows(self):
+        rows = []
+        for key, value in self.items():
+            infostr = self._infoStr(key)
+            doc = self.getDoc(key)
+            rows.append((key, str(value), infostr, doc if doc else ""))
+        return rows
+
+    def asCsv(self) -> str:
+        """
+        Returns this dict as a csv str, with columns: key, value, spec, doc
+        """
+        rows = [("# key", "value", "spec", "doc")]
+        rows.extend(self._asRows())
+        from io import StringIO
+        import csv
+        s = StringIO()
+        writer = csv.writer(s)
+        writer.writerows(rows)
+        return s.getvalue()
+        
+    def _infoStr(self, k: str) -> str:
+        info = []
+        choices = self.getChoices(k)
+        if choices:
+            choicestr = "choices: {" + " ".join(str(ch) for ch in choices) + "}"
+            info.append(choicestr)
+        keyrange = self.getRange(k)
+        if keyrange:
+            low, high = keyrange
+            info.append(f"between {low} - {high}")
+        typestr = self.getTypestr(k)
+        info.append(typestr)
+        return" | ".join(info) if info else ""
+        
     def __str__(self) -> str:
         import tabulate
         header = f"Config: {self._name}\n"
@@ -913,23 +951,10 @@ class ConfigDict(CheckedDict):
         keys = sorted(self.keys())
         for k in keys:
             v = self[k]
-            info = []
             lines = []
-            choices = self.getChoices(k)
-            if choices:
-                choicestr = ", ".join(str(ch) for ch in choices)
-                if len(choicestr)>self._helpwidth:
-                    choiceslines = textwrap.wrap(choicestr, self._helpwidth)
-                    lines.extend(choiceslines)
-                else:
-                    info.append(choicestr)
-            keyrange = self.getRange(k)
-            if keyrange:
-                info.append(f"between {keyrange}")
-            typestr = self.getTypestr(k)
-            info.append(typestr)
+            infostr = self._infoStr(k)
             valuestr = str(v)
-            rows.append((k, valuestr, " | ".join(info)))
+            rows.append((k, valuestr, infostr))
             doc = self.getDoc(k)
             if doc:
                 doclines = textwrap.wrap(doc, self._helpwidth)
@@ -982,10 +1007,6 @@ class ConfigDict(CheckedDict):
         if configpath is None:
             configpath = self.getPath()
         if not os.path.exists(configpath):
-            if self.default is None:
-                logger.error(
-                        "No written config found, but default was not set")
-                raise FileNotFoundError(f"{configpath} not found")
             logger.debug("Using default config")
             super().update(self.default)
             return
@@ -1017,20 +1038,20 @@ class ConfigDict(CheckedDict):
         keysOnlyInRead = confdict.keys()-self.default.keys()
         if keysOnlyInRead:
             logger.warning(f"ConfigDict {self._name}, saved at {configpath}")
-            logger.warning(
-                    "There are keys defined in the saved"
-                    " config which are not present in the default config. They will"
-                    " be skipped:")
+            logger.warning("There are keys defined in the saved config which are not" 
+                           " present in the default config. They will be skipped:")
             logger.warning(f"   {keysOnlyInRead}")
 
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
         
-        self.checkDict(confdict)
-        self.checkDict(self.default)
         super().update(self.default)
-        self.update(confdict)
+        errormsg = self.checkDict(confdict)
+        if errormsg:
+            logger.error(f"Could not load saved dict: {errormsg}. Using default")
+        else:
+            super().update(confdict)
         self._loaded = True
 
 
