@@ -949,6 +949,23 @@ class ConfigDict(CheckedDict):
             rows.append((key, str(value), infostr, doc if doc else ""))
         return rows
 
+    def generateRstDocumentation(self) -> str:
+        lines = []
+        _ = lines.append
+        for key, value in self.default.items():
+            _(f"{key}:")
+            _(f"    | Default: **{value}**  -- `{self.getTypestr(key)}`")
+            if choices := self.getChoices(key):
+                choicestr = ', '.join(map(str, choices))
+                _(f"    | Choices: ``{choicestr}``")
+            if valuerange := self.getRange(key):
+                a, b = valuerange
+                _(f"    | Between {a} - {b}")
+            if doc := self.getDoc(key):
+                _(f"    | *{doc}*")
+            _("")
+        return "\n".join(lines)
+
     def asCsv(self) -> str:
         """
         Returns this dict as a csv str, with columns: key, value, spec, doc
