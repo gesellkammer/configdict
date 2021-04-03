@@ -2,7 +2,7 @@
 CheckedDict
 -----------
 
-A dictionary based on a default prototype. A CheckedDict can only define
+A dictionary based on a default prototype. A :class:`CheckedDict` can only define
 ``key:value`` pairs which are already present in the default. It is possible to
 define a docstring for each key and different restrictions for the values
 regarding possible values, ranges and type. A CheckedDict is useful for
@@ -12,15 +12,17 @@ configuration settings.
 ConfigDict
 ----------
 
-Based on CheckedDict, a ConfigDict is a persistent, unique dictionary. It is
+Based on :class:`CheckedDict`, a :class:`ConfigDict` is a persistent, unique dictionary. It is
 saved under the config folder determined by the OS and it is updated with each
 modification. It is useful for implementing configuration of a module / library
 / app, where there is a default/initial state and the user needs to be able to
 configure global settings which must be persisted between sessions (similar to
 the settings in an application)
 
-Example::
+Example
+~~~~~~~
 
+.. code::
 
     from configdict import ConfigDict
 
@@ -31,8 +33,9 @@ Example::
     config.load()
 
 
-Alternatively, a ConfigDict can be created all at once::
+Alternatively, a :class:`ConfigDict` can be created all at once
 
+.. code::
 
     config = ConfigDict("myapp",
         default = {
@@ -57,7 +60,7 @@ This will create the dictionary and load any persisted version. Any saved
 modifications will override the default values. Whenever the user changes any
 value (via ``config[key] = newvalue``) the dictionary will be saved.
 
-In all other respects a ConfigDict behaves like a normal dictionary.
+In all other respects a :class:`ConfigDict` behaves like a normal dictionary.
 
 """
 from __future__ import annotations
@@ -282,7 +285,8 @@ def _openInEditor(cfg):
 class CheckedDict(dict):
     """
     A dictionary which checks that the keys and values are valid
-    according to a default dict and a validator.
+    according to a default dict and a validator. In a :class:`CheckedDict`,
+    only keys are allowed which are already present in the default given.
 
     Args:
         default: a dict will all default values. A config can accept only
@@ -304,7 +308,27 @@ class CheckedDict(dict):
         docs: a dict containing help lines for keys defined in default
         callback: function ``(key, value) -> None``. This function is called **after**
             the modification has been done.
-        precallback: function ``(key, value) -> None``
+        precallback: function ``(key, value) -> newvalue``. If given, a precallback intercepts
+            any change and can modify the value or return None to prevent the modification
+
+    Example
+    =======
+
+    .. code::
+
+        from configdict import *
+        default = {
+            'color': '#FF0000',
+            'size': 10,
+            'name': ''
+        }
+
+        validator = {
+            'size::range': (6, 30),
+            'color': lambda d, value: iscolor(value)
+        }
+
+        checked = CheckedDict(default, validator=validator)
     """
     def __init__(self,
                  default: Dict[str, Any] = None,
@@ -357,8 +381,10 @@ class CheckedDict(dict):
         default config item by item (see example). After adding all new keys it is
         necessary to call ``.load()``
 
-        Example::
+        Example
+        =======
 
+        .. code::
 
             cfg = ConfigDict("foo", load=False)
             # We define a default step by step
@@ -439,7 +465,7 @@ class CheckedDict(dict):
 
     def getValidateFunc(self, key:str) -> Opt[validatefunc_t]:
         """
-        Returns a function to validate a value for `key`, if there
+        Returns a function to validate a value for ``key``, if there
         is one. A validate function has the form ``(config, value) -> bool``
 
         Args:
@@ -455,8 +481,7 @@ class CheckedDict(dict):
 
     def getChoices(self, key: str) -> Opt[list]:
         """
-        Return a seq. of possible values for key `k`
-        or `None`
+        Return a seq. of possible values for key ``k`` or ``None``
         """
         if key not in self._allowedkeys:
             raise KeyError(f"{key} is not a valid key")
@@ -482,7 +507,10 @@ class CheckedDict(dict):
 
         Returns errormsg. If value is of correct type, errormsg is None
 
-        Example::
+        Example
+        =======
+
+        .. code::
 
             error = config.checkType(key, value)
             if error:
@@ -526,11 +554,13 @@ class CheckedDict(dict):
         Returns the expected type for key, as a type which can be passed
         to isinstance
 
-        **NB**: all numbers are reduced to type float, all strings are of type str,
+        .. note::
+
+            All numbers are reduced to type float, all strings are of type str,
             otherwise the type of the default value, which can be a collection
             like a list or a dict
 
-        See Also: `checkValue`
+        See Also: :meth:`checkValue`
         """
         if self._validator is not None:
             definedtype = self._validator.get(key+"::type")
@@ -652,8 +682,10 @@ class ConfigDict(CheckedDict):
         sortKeys: if True, keys are sorted whenever the dict is saved/edited. 
 
 
-    Example::
+    Example
+    =======
 
+    .. code::
 
         config = ConfigDict("myproj.subproj")
         config.addKey("keyA", 10, doc="documentaion of keyA")
@@ -975,12 +1007,14 @@ class ConfigDict(CheckedDict):
         used is *yaml*, because it allows to embed comments. This is independent
         of the format used for persistence. The application used is the user's
         default application for the .yaml format and can be configured at the
-        os level. In macos we use `open`, in linux `xdg-open` and in windows
-        `start`, which all respond to the user's own configuration regarding
+        os level. In macos we use ``open``, in linux ``xdg-open`` and in windows
+        ``start``, which all respond to the user's own configuration regarding
         default applications.
 
-        NB: a temporary file is created for editing. The persisted file is only
-        modified if the editing is accepted.
+        .. note::
+
+            A temporary file is created for editing. The persisted file is only
+            modified if the editing is accepted.
 
         Args:
             waitOnModified: if True, the transaction is accepted whenever the

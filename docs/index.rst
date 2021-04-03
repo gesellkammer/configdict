@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to configdict's documentation!
-======================================
+configdict
+==========
 
-This package provides two classes, :class:`CheckedDict` and :class:`ConfigDict`, 
+This package provides two classes, :class:`~configdict.configdict.CheckedDict` and :class:`~configdict.configdict.ConfigDict`, 
 which allow to define a dict with default values and a set of allowed keys.
 Any modification to the dict can be validated against a set of rules.
 
@@ -17,4 +17,3 @@ Any modification to the dict can be validated against a set of rules.
       
 .. automodapi:: configdict.configdict
      :inherited-members:
-   
