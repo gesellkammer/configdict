@@ -6,11 +6,11 @@ import sys
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 7, 0)
+version = (0, 7, 2)
 
 setup(
     name='configdict',
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     version=".".join(map(str, version)),
     description='A persistent dict used as configuration',
     long_description=readme,
