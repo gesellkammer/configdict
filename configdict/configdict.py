@@ -403,7 +403,7 @@ class CheckedDict(dict):
             type: the type accepted, as passed to isinstance (can be a tuple)
             choices: a seq of possible values
             range: a (min, max) tuple defining an allowed range for this value
-            validatefunc: a function ``(config, value) -> bool``, which should return
+            validatefunc: a function ``(config: dict, key:str, value) -> bool``, should return
                 `True` if value is valid for `key` or False otherwise
             doc: documentation for this key
 
