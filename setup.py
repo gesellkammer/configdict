@@ -6,7 +6,7 @@ import sys
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 7, 2)
+version = (0, 8, 0)
 
 setup(
     name='configdict',

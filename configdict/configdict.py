@@ -82,7 +82,7 @@ __all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPat
 
 logger = logging.getLogger("configdict")
 
-validatefunc_t = Callable[[dict, Any], bool]
+validatefunc_t = Callable[[dict, str, Any], bool]
 T = TypeVar("T")
 
 _UNKNOWN = object()
@@ -392,7 +392,7 @@ class CheckedDict(dict):
             cfg.addKey("color", "red", choices=("read", "blue", "green"))
             cfg.addKey("height",
                        doc="Height should be higher than width",
-                       validatefunc=lambda cfg, height: height > cfg['width'])
+                       validatefunc=lambda cfg, key, height: height > cfg['width'])
             # Now update the dict with the newly defined default and any
             # saved version
             cfg.load()
@@ -505,7 +505,14 @@ class CheckedDict(dict):
         """
         Check if value is valid for key
 
-        Returns errormsg. If value is of correct type, errormsg is None
+        Args:
+            key: the key to check
+            value: the value to check according to the contraints defined
+                for the key (range, type, etc)
+
+        Returns:
+            None if the value is acceptable for the key, an error message
+            otherwise
 
         Example
         =======
@@ -521,7 +528,7 @@ class CheckedDict(dict):
             return f"key {key} should be one of {choices}, got {value}"
         func = self.getValidateFunc(key)
         if func:
-            ok = func(self, value)
+            ok = func(self, key, value)
             if not ok:
                 return f"{value} is not valid for key {key}"
         t = self.getType(key)
@@ -541,6 +548,15 @@ class CheckedDict(dict):
         """
         Returns the valid range for the value corresponding to this key,
         if it was specified.
+
+        Args:
+            key: the key to get the range from. 
+
+        Returns: 
+            the range of values allowed for this key, or None if there is no
+            range defined for this key.
+
+        Raises KeyError if the key is not present
         """
         if key not in self._allowedkeys:
             raise KeyError(f"{key} is not a valid key")
@@ -553,6 +569,9 @@ class CheckedDict(dict):
         """
         Returns the expected type for key, as a type which can be passed
         to isinstance
+
+        Args:
+            key: the key to query
 
         .. note::
 
@@ -584,6 +603,8 @@ class CheckedDict(dict):
         The same as `.getType` but returns a string representation of the type/types
         possible for the value of this key
 
+        Args:
+            key: the key to query
         """
         t = self.getType(key)
         if isinstance(t, tuple):
@@ -889,7 +910,6 @@ class ConfigDict(CheckedDict):
             func: a function of the form ``(dict, key, value) -> None``, where *dict* is
                 this ConfigDict itself, *key* is the key which was just changed and *value*
                 is the new value.
-
             pattern: call func when pattern matches key.
 
         """
@@ -950,6 +970,11 @@ class ConfigDict(CheckedDict):
         return rows
 
     def generateRstDocumentation(self) -> str:
+        """
+        Generate ReST documentation for this dictionary, using
+        definition lists. The generated string can then be dumped
+        to a file and included in documentation  
+        """
         lines = []
         _ = lines.append
         for key, value in self.default.items():
@@ -1090,17 +1115,24 @@ class ConfigDict(CheckedDict):
         if keysOnlyInRead:
             logger.warning(f"ConfigDict {self._name}, saved at {configpath}")
             logger.warning("There are keys defined in the saved config which are not" 
-                           " present in the default config. They will be skipped:")
+                           " present in the default config, they will be skipped:")
             logger.warning(f"   {keysOnlyInRead}")
 
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
         
-        super().update(self.default)
+        try:
+            super().update(self.default)
+        except ValueError as e:
+            errmsg = textwrap.indent(str(e), prefix="    ")
+            raise ValueError(f"Could not load default dict, error:\n{errmsg}")
         errormsg = self.checkDict(confdict)
         if errormsg:
-            logger.error(f"Could not load saved dict: {errormsg}. Using default")
+            logger.error(f"Could not load saved dict: {errormsg}, using default")
+            logger.error("To revert to default permanently, do:\n")
+            logger.error("    from configdict import getConfig")
+            logger.error(f"    getConfig('{self.name}').reset()")
         else:
             super().update(confdict)
         self._loaded = True
