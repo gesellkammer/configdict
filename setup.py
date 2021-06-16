@@ -22,7 +22,6 @@ setup(
     install_requires=[
         "setuptools",
         "appdirs",
-        "tabulate",
         "PyYAML",
     ],
     license="BSD",

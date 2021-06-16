@@ -76,6 +76,8 @@ import textwrap
 import tempfile
 from types import FunctionType
 from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable, TypeVar)
+# import tabulate
+# tabulate.PRESERVE_WHITESPACE = True
 
 
 __all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPathFromName"]
@@ -178,6 +180,33 @@ def _asYaml(d: Dict[str, Any],
     return "\n".join(lines)
 
 
+def _html_table(rows: list, headers, maxwidths=None, rowstyles=None) -> str:
+    parts = []
+    _ = parts.append
+    _("<table>")
+    _("<thead>")
+    _("<tr>")
+    if maxwidths is None:
+        maxwidths = [0] * len(headers)
+    if rowstyles is None:
+        rowstyles = [None] * len(headers)
+    for colname in headers:
+        _(f'<th style="text-align:left">{colname}</th>')
+    _("</tr></thead><tbody>")
+    for row in rows:
+        _("<tr>")
+        for cell, maxwidth, rowstyle in zip(row, maxwidths, rowstyles):
+            if rowstyle is not None:
+                cell = f'<{rowstyle}>{cell}</{rowstyle}>'
+            if maxwidth > 0:
+                _(f'<td style="text-align:left;max-width:{maxwidth}px;">{cell}</td>')
+            else:
+                _(f'<td style="text-align:left">{cell}</td>')
+        _("</tr>")
+    _("</tbody></table>")
+    return "".join(parts)
+
+
 def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
     """
     Checks the validity of the validator itself, and makes any needed
@@ -235,7 +264,6 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
         _waitForClick()
         return False
         
-
     directory, base = os.path.split(path)
     if not directory:
         directory = "."
@@ -258,7 +286,7 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
     return modified
 
 
-def _showInfoDialog(msg, title=None) -> None:
+def _showInfoDialog(msg: str, title: str=None) -> None:
     """
     Creates a simple confirmation dialog box
 
@@ -1008,19 +1036,32 @@ class ConfigDict(CheckedDict):
         info = []
         choices = self.getChoices(k)
         if choices:
-            choicestr = "choices: {" + " ".join(str(ch) for ch in choices) + "}"
+            choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
             info.append(choicestr)
-        keyrange = self.getRange(k)
-        if keyrange:
+        elif (keyrange := self.getRange(k)) is not None:
             low, high = keyrange
             info.append(f"between {low} - {high}")
-        typestr = self.getTypestr(k)
-        info.append(typestr)
+        else:
+            typestr = self.getTypestr(k)
+            info.append(typestr)
         return" | ".join(info) if info else ""
+
+    def _repr_html_(self) -> str:
+        parts = [f'<div><h4>ConfigDict: <strong>{self.name}</strong></h4>']
+        if self.persistent:
+            parts.append(f'persistent (<code>"{self.getPath()}"</code>)')
+        parts.append("<br>")
+        rows = []
+        for k in self.keys():
+            v = self[k]
+            rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
+        table = _html_table(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400], 
+                            rowstyles=('strong', 'code', None, None))
+        parts.append(table)
+        parts.append("</div>")
+        return "".join(parts)
         
-    def __str__(self) -> str:
-        import tabulate
-        header = f"Config: {self._name}\n"
+    def _repr_rows(self) -> List[str]:
         rows = []
         keys = sorted(self.keys())
         for k in keys:
@@ -1035,6 +1076,12 @@ class ConfigDict(CheckedDict):
                 lines.extend(doclines)
             for line in lines:
                 rows.append(("", "", line))
+        return rows
+        
+    def __str__(self) -> str:
+        import tabulate
+        header = f"Config: {self._name}\n"
+        rows = self._repr_rows()
         return header + tabulate.tabulate(rows)
 
     def getPath(self) -> str:
