@@ -5,3 +5,4 @@ dist
 *.pyc
 docs/_*
 docs/api
+*.sublime-workspace

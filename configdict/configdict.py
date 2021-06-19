@@ -90,6 +90,40 @@ T = TypeVar("T")
 _UNKNOWN = object()
 
 
+def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
+    """
+    Sort a string sequence naturally
+
+    Sorts the sequence so that 'item1' and 'item2' are before 'item10'
+
+    Args:
+        seq: the sequence to sort
+        key: a function to convert an item in seq to a string
+
+    Examples
+    ~~~~~~~~
+
+    >>> seq = ["e10", "e2", "f", "e1"]
+    >>> sorted(seq)
+    ['e1', 'e10', 'e2', 'f']
+    >>> sortNatural(seq)
+    ['e1', 'e2', 'e10', 'f']
+
+    >>> seq = [(2, "e10"), (10, "e2")]
+    >>> sort_natural(seq, key=lambda tup:tup[1])
+    [(10, 'e2'), (2, 'e10')]
+    """
+    def convert(text: str):
+        return int(text) if text.isdigit() else text.lower()
+
+    def alphanum_key(key:str):
+        return [convert(c) for c in re.split('([0-9]+)', key)]
+
+    if key is not None:
+        return sorted(seq, key=lambda x: alphanum_key(key(x)))
+    return sorted(seq, key=alphanum_key)
+
+
 def _yamlComment(doc: Opt[str],
                  default: Any,
                  choices: Opt[set],
@@ -123,6 +157,8 @@ def _yamlComment(doc: Opt[str],
             lines.append(f"# {doc}")
         else:
             lines.extend("# " + l for l in textwrap.wrap(doc, maxwidth))
+    if choices:
+        valuetype = None
     if default:
         infoparts.append(f"default: {default}")
     if valuetype:
@@ -259,8 +295,8 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
         from watchdog.observers import Observer
         from watchdog.events import PatternMatchingEventHandler
     except ImportError:
-        logger.info("watchdog is needed to be able to wait on file events. "
-                    "Install via `pip install watchdog`")
+        logger.warning("watchdog is needed to be able to wait on file events. "
+                       "Install via `pip install watchdog`")
         _waitForClick()
         return False
         
@@ -1036,6 +1072,8 @@ class ConfigDict(CheckedDict):
         info = []
         choices = self.getChoices(k)
         if choices:
+            choices = list(str(choice) for choice in choices)
+            choices = sortNatural(choices)
             choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
             info.append(choicestr)
         elif (keyrange := self.getRange(k)) is not None:
