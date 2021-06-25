@@ -346,6 +346,9 @@ def _openInEditor(cfg):
     _openInStandardApp(cfg)
 
 
+INVALID = object()
+
+
 class CheckedDict(dict):
     """
     A dictionary which checks that the keys and values are valid
@@ -373,7 +376,7 @@ class CheckedDict(dict):
         callback: function ``(key, value) -> None``. This function is called **after**
             the modification has been done.
         precallback: function ``(key, value) -> newvalue``. If given, a precallback intercepts
-            any change and can modify the value or return None to prevent the modification
+            any change and can modify the value or return INVALID to prevent the modification
 
     Example
     =======
@@ -489,7 +492,7 @@ class CheckedDict(dict):
 
     def __setitem__(self, key: str, value) -> None:
         if key not in self._allowedkeys:
-            raise KeyError(f"Unknown key: {key}")
+            raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
         oldvalue = self.get(key)
         if oldvalue is not None and oldvalue == value:
             return
@@ -498,7 +501,7 @@ class CheckedDict(dict):
             raise ValueError(errormsg)
         if self._precallback:
             newvalue = self._precallback(self, key, oldvalue, value)
-            if newvalue:
+            if newvalue is not INVALID:
                 value = newvalue
 
         super().__setitem__(key, value)
@@ -811,7 +814,7 @@ class ConfigDict(CheckedDict):
 
     def __init__(self,
                  name: str,
-                 default: Dict[str, Any] = None,
+                 default: Dict[str, Any]=None,
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
                  precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
@@ -853,8 +856,11 @@ class ConfigDict(CheckedDict):
 
         self.persistent = persistent
 
-        if default is not None and load:
-            self.load()
+        if default is not None:
+            self._updateWithDefault()
+
+            if load:
+                self.load()
 
     @property
     def name(self) -> Opt[str]:
@@ -896,7 +902,7 @@ class ConfigDict(CheckedDict):
         """
         for pattern, func in self._callbacks:
             if re.match(pattern, key):
-                func(self, key, value)
+                func(key, value)
         if self._persistent:
             self.save()
 
@@ -964,20 +970,21 @@ class ConfigDict(CheckedDict):
                 out.registerCallback(func, pattern)
         return out
 
-    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=None) -> None:
+    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=r".*") -> None:
         """
-        Register a callback to be fired when a key matching the given pattern is
-        changed. If no pattern is given, the function will be called for
-        every key.
+        Register a callback to be fired when a key matching the given pattern is changed. 
+
+        If no pattern is given, the function will be called for every key.
 
         Args:
-            func: a function of the form ``(dict, key, value) -> None``, where *dict* is
+            func: a function of the form ``(key, value) -> None``, where *dict* is
                 this ConfigDict itself, *key* is the key which was just changed and *value*
                 is the new value.
-            pattern: call func when pattern matches key.
+            pattern: a regex pattern. The function will be called if the pattern matches 
+                the key being modified.
 
         """
-        self._callbacks.append((pattern or r".*", func))
+        self._callbacks.append((pattern, func))
 
     def _ensureWritable(self) -> None:
         """ Make sure that we can serialize this dict to disk """
@@ -1098,6 +1105,9 @@ class ConfigDict(CheckedDict):
         parts.append(table)
         parts.append("</div>")
         return "".join(parts)
+
+    def _repr_pretty_(self, printer, cycle) -> str:
+        return printer.text(str(self))
         
     def _repr_rows(self) -> List[str]:
         rows = []
@@ -1130,11 +1140,12 @@ class ConfigDict(CheckedDict):
 
     def edit(self, waitOnModified=False) -> None:
         """
-        Edit this config by opening it in an external application. The format
-        used is *yaml*, because it allows to embed comments. This is independent
-        of the format used for persistence. The application used is the user's
-        default application for the .yaml format and can be configured at the
-        os level. In macos we use ``open``, in linux ``xdg-open`` and in windows
+        Edit this config by opening it in an external application. 
+
+        The format used is *yaml*, because it allows to embed comments. This is 
+        independent of the format used for persistence. The application used is 
+        the user's default application for the .yaml format and can be configured 
+        at the os level. In macos we use ``open``, in linux ``xdg-open`` and in windows
         ``start``, which all respond to the user's own configuration regarding
         default applications.
 
@@ -1161,10 +1172,25 @@ class ConfigDict(CheckedDict):
             _waitForClick(title=self.name)
         self.load(configfile)
 
+    def _updateWithDefault(self) -> None:
+        try:
+            super().update(self.default)
+        except ValueError as e:
+            errmsg = textwrap.indent(str(e), prefix="    ")
+            raise ValueError(f"Could not load default dict, error:\n{errmsg}")
+        
+    def _fill(self, other: dict) -> None:
+
+        for key in other:
+            if key not in self:
+                self[key] = other[key]
+
     def load(self, configpath:str=None) -> None:
         """
         Read the saved config, update self.
         """
+        if len(self) == 0 and self.default:
+            super().update(self.default)
         if configpath is None:
             configpath = self.getPath()
         if not os.path.exists(configpath):
@@ -1198,26 +1224,21 @@ class ConfigDict(CheckedDict):
         # config should be discarded with a warning
         keysOnlyInRead = confdict.keys()-self.default.keys()
         if keysOnlyInRead:
-            logger.warning(f"ConfigDict {self._name}, saved at {configpath}")
-            logger.warning("There are keys defined in the saved config which are not" 
-                           " present in the default config, they will be skipped:")
-            logger.warning(f"   {keysOnlyInRead}")
+            logger.warning(f"ConfigDict {self._name}, saved at {configpath}\n"
+                           "There are keys defined in the saved config which are not" 
+                           " present in the default config, they will be skipped: \n"
+                           f"   {keysOnlyInRead}")
 
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
         
-        try:
-            super().update(self.default)
-        except ValueError as e:
-            errmsg = textwrap.indent(str(e), prefix="    ")
-            raise ValueError(f"Could not load default dict, error:\n{errmsg}")
         errormsg = self.checkDict(confdict)
         if errormsg:
             logger.error(f"Could not load saved dict: {errormsg}, using default")
-            logger.error("To revert to default permanently, do:\n")
-            logger.error("    from configdict import getConfig")
-            logger.error(f"    getConfig('{self.name}').reset()")
+            logger.error("To revert to default permanently, do:\n"
+                         "    from configdict import getConfig \n"
+                        f"    getConfig('{self.name}').reset()")
         else:
             super().update(confdict)
         self._loaded = True
