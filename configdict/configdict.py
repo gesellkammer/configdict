@@ -90,6 +90,19 @@ T = TypeVar("T")
 _UNKNOWN = object()
 
 
+_editHeaderWatch = (r'''#  ****************************************************
+#  *   Edit this file to modify the configuration     *  
+#  *   When you are finished editing, save the file   *
+#  ****************************************************
+''')
+
+_editHeaderPopup = (r'''#  **********************************************************
+#  *  Edit this file to modify the configuration            *  
+#  *  Click OK on the popup dialog to finish the opeartion  *
+#  **********************************************************
+''')
+
+
 def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
     """
     Sort a string sequence naturally
@@ -123,13 +136,18 @@ def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
         return sorted(seq, key=lambda x: alphanum_key(key(x)))
     return sorted(seq, key=alphanum_key)
 
+def _asChoiceStr(x) -> str:
+    if isinstance(x, str):
+        return f"'{x}'"
+    else:
+        return str(x)
 
 def _yamlComment(doc: Opt[str],
                  default: Any,
                  choices: Opt[set],
                  valuerange: Opt[Tuple[float, float]],
                  valuetype: Opt[str],
-                 maxwidth=72) -> str:
+                 maxwidth=80) -> str:
     """
     This generated the yaml comments used when saving the config to yaml
 
@@ -148,10 +166,10 @@ def _yamlComment(doc: Opt[str],
         return ""
     """
     # this is the documentation for bla
-    # default: xxx, choices: {10, 20, 30}, type: int, range: 0.0 - 1.0
+    # default: xxx, choices: 10, 20, 30, type: int, range: 0.0 - 1.0
     """
     lines = []
-    infoparts = []
+    infoparts = [f"default: {default}"]
     if doc:
         if len(doc) < maxwidth:
             lines.append(f"# {doc}")
@@ -159,12 +177,11 @@ def _yamlComment(doc: Opt[str],
             lines.extend("# " + l for l in textwrap.wrap(doc, maxwidth))
     if choices:
         valuetype = None
-    if default:
-        infoparts.append(f"default: {default}")
     if valuetype:
         infoparts.append(f"type: {valuetype}")
     if choices:
-        infoparts.append(f"choices: {choices}")
+
+        infoparts.append(f"choices: {', '.join(map(str, choices))}")
     if valuerange:
         infoparts.append(f"range: {valuerange[0]} - {valuerange[1]}")
     if infoparts:
@@ -317,7 +334,7 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
     observer.schedule(handler, path=directory, recursive=False)
     observer.start()
     if timeout is None:
-        timeout = 360000  # 100 hours
+        timeout = 60 * 20  # 20 minutes
     observer.join(timeout)
     return modified
 
@@ -997,7 +1014,7 @@ class ConfigDict(CheckedDict):
         super().reset()
         self.save()
 
-    def save(self, path:str=None) -> None:
+    def save(self, path:str=None, header:str='') -> None:
         """
         Normally a config doesn't need to be saved by the user,
         it is saved whenever it is modified.
@@ -1006,7 +1023,8 @@ class ConfigDict(CheckedDict):
             path (str): the path to save the config. If None and this
                 is a named config, it is saved to the path returned by
                 :meth:`~ConfigDict.getPath`
-            sortKeys: if True, the keys are sorted when saving
+            header: if given, this string is written prior to the dict, as 
+                a comment. This is only supported when saving to yaml
         """
         if path is None:
             path = self.getPath()
@@ -1023,7 +1041,11 @@ class ConfigDict(CheckedDict):
                 json.dump(self, f, indent=True, sort_keys=True)
         elif fmt == 'yaml':
             yamlstr = self.asYaml(sortKeys=self.sortKeys)
-            open(path, "w").write(yamlstr)
+            with open(path, "w") as f:
+                if header:
+                    f.write(header)
+                    f.write("\n")
+                f.write(yamlstr)
         elif fmt == 'csv':
             csvstr = self.asCsv()
             open(path, "w").write(csvstr)
@@ -1138,16 +1160,15 @@ class ConfigDict(CheckedDict):
             self._configPath = configPathFromName(self._name, self.fmt)
         return self._configPath
 
-    def edit(self, waitOnModified=False) -> None:
+    def edit(self, waitOnModified=True, persist=True) -> None:
         """
         Edit this config by opening it in an external application. 
 
-        The format used is *yaml*, because it allows to embed comments. This is 
-        independent of the format used for persistence. The application used is 
-        the user's default application for the .yaml format and can be configured 
-        at the os level. In macos we use ``open``, in linux ``xdg-open`` and in windows
-        ``start``, which all respond to the user's own configuration regarding
-        default applications.
+        The format used is *yaml*. This is independent of the format used for 
+        persistence. The application used is the user's default application 
+        for the .yaml format and can be configured at the os level. In macos 
+        we use ``open``, in linux ``xdg-open`` and in windows ``start``, which 
+        all respond to the user's own configuration regarding default applications.
 
         .. note::
 
@@ -1164,13 +1185,20 @@ class ConfigDict(CheckedDict):
                 subprocess which launched them
         """
         configfile = tempfile.mktemp(suffix=".yaml")
-        self.save(configfile)
+        header = _editHeaderWatch if waitOnModified else _editHeaderPopup
+        self.save(configfile, header=header)
         _openInEditor(configfile)
         if waitOnModified:
-            _waitOnFileModified(configfile)
+            try:
+                _waitOnFileModified(configfile)
+            except KeyboardInterrupt:
+                logger.debug("Editing aborted")
+                return
         else:
             _waitForClick(title=self.name)
         self.load(configfile)
+        if persist and self.persistent:
+            self.save()
 
     def _updateWithDefault(self) -> None:
         try:
@@ -1222,12 +1250,16 @@ class ConfigDict(CheckedDict):
 
         # only keys in default should be accepted, but keys in the read
         # config should be discarded with a warning
-        keysOnlyInRead = confdict.keys()-self.default.keys()
-        if keysOnlyInRead:
+        keysNotInDefault = confdict.keys() - self.default.keys()
+        needsSave = False
+        if keysNotInDefault:
             logger.warning(f"ConfigDict {self._name}, saved at {configpath}\n"
                            "There are keys defined in the saved config which are not" 
                            " present in the default config, they will be skipped: \n"
-                           f"   {keysOnlyInRead}")
+                           f"   {keysNotInDefault}")
+            for k in keysNotInDefault:
+                del confdict[k]
+            needsSave = True
 
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
@@ -1242,6 +1274,8 @@ class ConfigDict(CheckedDict):
         else:
             super().update(confdict)
         self._loaded = True
+        if needsSave and self.persistent:
+            self.save()
 
 
 def _makeName(configname: str, base: str = None) -> str:
@@ -1377,3 +1411,4 @@ def configPathFromName(name: str, fmt='yaml') -> str:
     else:
         configdir = userconfigdir
     return os.path.join(configdir, configfile)
+

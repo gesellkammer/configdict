@@ -1,12 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import os
-import sys
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 9, 2)
+version = (0, 9, 3)
 
 setup(
     name='configdict',
@@ -23,6 +18,7 @@ setup(
         "setuptools",
         "appdirs",
         "PyYAML",
+        "watchdog"
     ],
     license="BSD",
     zip_safe=False,
