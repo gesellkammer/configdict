@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (0, 9, 3)
+version = (0, 10, 0)
 
 setup(
     name='configdict',
@@ -18,7 +18,8 @@ setup(
         "setuptools",
         "appdirs",
         "PyYAML",
-        "watchdog"
+        "watchdog",
+        "fuzzywuzzy"
     ],
     license="BSD",
     zip_safe=False,

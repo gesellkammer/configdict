@@ -32,8 +32,19 @@ Example
     config.addKey("keyC", "blue", choices=("blue", "red"), doc="documentation of keyC")
     config.load()
 
+Alternativaly, a :class:`ConfigDict` or a :class:`CheckedDict` can be built
+via a context manager::
 
-Alternatively, a :class:`ConfigDict` can be created all at once
+    with ConfigDict("plotting") as cfg:
+        # While building a config, __call__ is equivalent to addKey
+        cfg('backend', 'matplotlib', choices={'matlotlib'})
+        cfg('spectrogram.figsize', (24, 8))
+        cfg('spectrogram.maxfreq', 12000,
+          doc="Highest frequency in a spectrogram")
+        cfg('spectrogram.window', 'hamming', choices={'hamming', 'hanning'})
+        # no need to call .load, it is called automatically
+
+A :class:`ConfigDict` can be created all at once
 
 .. code::
 
@@ -75,29 +86,32 @@ import re
 import textwrap
 import tempfile
 from types import FunctionType
-from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable, TypeVar)
-# import tabulate
-# tabulate.PRESERVE_WHITESPACE = True
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable, TypeVar)
+    validatefunc_t = Callable[[dict, str, Any], bool]
+    T = TypeVar("T")
 
-
-__all__ = ["CheckedDict", "ConfigDict", "getConfig", "activeConfigs", "configPathFromName"]
+__all__ = ("CheckedDict",
+           "ConfigDict",
+           "getConfig",
+           "activeConfigs",
+           "configPathFromName")
 
 logger = logging.getLogger("configdict")
 
-validatefunc_t = Callable[[dict, str, Any], bool]
-T = TypeVar("T")
 
 _UNKNOWN = object()
 
 
 _editHeaderWatch = (r'''#  ****************************************************
-#  *   Edit this file to modify the configuration     *  
+#  *   Edit this file to modify the configuration     *
 #  *   When you are finished editing, save the file   *
 #  ****************************************************
 ''')
 
 _editHeaderPopup = (r'''#  **********************************************************
-#  *  Edit this file to modify the configuration            *  
+#  *  Edit this file to modify the configuration            *
 #  *  Click OK on the popup dialog to finish the opeartion  *
 #  **********************************************************
 ''')
@@ -137,10 +151,7 @@ def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
     return sorted(seq, key=alphanum_key)
 
 def _asChoiceStr(x) -> str:
-    if isinstance(x, str):
-        return f"'{x}'"
-    else:
-        return str(x)
+    return f"'{x}'" if isinstance(x, str) else str(x)
 
 def _yamlComment(doc: Opt[str],
                  default: Any,
@@ -233,7 +244,7 @@ def _asYaml(d: Dict[str, Any],
     return "\n".join(lines)
 
 
-def _html_table(rows: list, headers, maxwidths=None, rowstyles=None) -> str:
+def _htmlTable(rows: list, headers, maxwidths=None, rowstyles=None) -> str:
     parts = []
     _ = parts.append
     _("<table>")
@@ -286,7 +297,7 @@ def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
     return v
 
 
-def _isfloaty(value):
+def _isfloaty(value) -> bool:
     return isinstance(value, (int, float)) or hasattr(value, '__float__')
 
 
@@ -307,7 +318,14 @@ def _openInStandardApp(path:str) -> None:
         raise RuntimeError(f"platform {platform} not supported")
 
 
-def _waitOnFileModified(path:str, timeout:float=None) -> bool:
+def _notify(title: str, msg: str) -> None:
+    import subprocess
+    if sys.platform == "linux":
+        print(f"**Notify** {title}: {msg}")
+        subprocess.call(['notify-send', title, msg])
+
+
+def _waitOnFileModified(path:str, timeout:float=None, notification:str='') -> bool:
     try:
         from watchdog.observers import Observer
         from watchdog.events import PatternMatchingEventHandler
@@ -316,7 +334,7 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
                        "Install via `pip install watchdog`")
         _waitForClick()
         return False
-        
+
     directory, base = os.path.split(path)
     if not directory:
         directory = "."
@@ -336,6 +354,12 @@ def _waitOnFileModified(path:str, timeout:float=None) -> bool:
     if timeout is None:
         timeout = 60 * 20  # 20 minutes
     observer.join(timeout)
+    if notification:
+        if "::" in notification:
+            title, body = notification.split("::")
+        else:
+            title, body = "Edit", notification
+        _notify(title, body)
     return modified
 
 
@@ -359,8 +383,23 @@ def _waitForClick(title:str=None):
     _showInfoDialog("Click OK when finished editing", title=title)
 
 
-def _openInEditor(cfg):
+def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
+
+
+def _bestMatches(s: str, options: List[str], limit:int, minpercent:int, lengthMatchPercent=None) -> List[str]:
+    from fuzzywuzzy import process
+    possibleChoices = process.extract(s, options, limit=limit)
+    if lengthMatchPercent:
+        lens = len(s)
+        lengthdiff = lens * (1 - lengthMatchPercent/100)
+        minlength = lens - lengthdiff
+        maxlength = lens + lengthdiff
+        return [choice for choice, percent in possibleChoices
+                if percent >= minpercent and minlength <= len(choice) <= maxlength]
+    else:
+        return [choice for choice, percent in possibleChoices
+                if percent >= minpercent]
 
 
 INVALID = object()
@@ -419,7 +458,8 @@ class CheckedDict(dict):
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
                  callback:Callable[[str, Any], None]=None,
-                 precallback=None) -> None:
+                 precallback=None,
+                 autoload=True) -> None:
 
         self.default = default if default else {}
         self._validator = _checkValidator(validator,
@@ -428,8 +468,11 @@ class CheckedDict(dict):
         self._allowedkeys = set(default.keys()) if default else set()
         self._precallback = precallback
         self._callback = callback
+        self._building = False
+        if self.default and autoload:
+            self.load()
 
-    def _changed(self):
+    def _changed(self) -> None:
         self._allowedkeys = set(self.default.keys())
 
     def copy(self) -> CheckedDict:
@@ -438,6 +481,32 @@ class CheckedDict(dict):
         """
         out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
                           precallback=self._precallback, callback=self._callback)
+        return out
+
+    def clone(self:T, updates:dict=None, **kws) -> T:
+        """
+        Clone self with modifications
+
+        Args:
+            updates: a dict with updated values for the clone dict
+            kws: any keyworg arg will be used to update the resulting dict
+
+        Returns:
+            the cloned dict
+
+        Examples
+        ~~~~~~~~
+
+            >>> import configdict
+            >>> d = configdict.CheckedDict(default={'A': 10, 'B': 20, 'C':30})
+            >>> d2 = d.clone({'B':21}, C=31)
+            >>> d2
+            {'A': 10, 'B': 21, 'C': 31)
+        """
+        out = self.copy()
+        if updates:
+            out.update(updates)
+        out.update(kws)
         return out
 
     def diff(self) -> dict:
@@ -451,6 +520,14 @@ class CheckedDict(dict):
             if value != valuedefault:
                 out[key] = value
         return out
+
+    def __call__(self, key:str, value:Any, type=None, choices=None,
+                 range:Tuple[Any, Any]=None, doc:str='',
+                 validatefunc:validatefunc_t=None) -> None:
+        if not self._building:
+            raise RuntimeError("Not inside a context manager context")
+        self.addKey(key=key, value=value, type=type, choices=choices,
+                    range=range, doc=doc, validatefunc=validatefunc)
 
     def addKey(self,
                key: str,
@@ -509,7 +586,13 @@ class CheckedDict(dict):
 
     def __setitem__(self, key: str, value) -> None:
         if key not in self._allowedkeys:
-            raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
+            if len(self._allowedkeys) < 8:
+                raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
+            else:
+                mostlikely = _bestMatches(key, self._allowedkeys, 16, minpercent=60)
+                msg = f"Unknown key {key}. Did you mean {', '.join(mostlikely)}?"
+                raise KeyError(msg)
+
         oldvalue = self.get(key)
         if oldvalue is not None and oldvalue == value:
             return
@@ -525,6 +608,33 @@ class CheckedDict(dict):
 
         if self._callback is not None:
             self._callback(key, value)
+
+    def load(self) -> None:
+        """
+        Update any undefined key in self with the default value
+
+        Example
+        ~~~~~~~
+
+        ::
+            from configdict import *
+            config = CheckedConfig()
+            config.addKey(...)
+            config.addKey(...)
+            ...
+            config.load()
+            # Now config is fully defined
+
+        """
+        if not self.default:
+            raise ValueError("This dict has no default")
+        if len(self) == 0:
+            super().update(self.default)
+        else:
+            d = self.default.copy()
+            d.update(self)
+            self.update(d)
+        self._loaded = True
 
     def checkDict(self, d: dict) -> str:
         """
@@ -549,8 +659,9 @@ class CheckedDict(dict):
 
     def getValidateFunc(self, key:str) -> Opt[validatefunc_t]:
         """
-        Returns a function to validate a value for ``key``, if there
-        is one. A validate function has the form ``(config, value) -> bool``
+        Returns a function to validate a value for ``key``
+
+        A validate function has the form ``(config, value) -> bool``
 
         Args:
             key (str): the key to query for a validate function
@@ -630,13 +741,12 @@ class CheckedDict(dict):
 
     def getRange(self, key: str) -> Opt[tuple]:
         """
-        Returns the valid range for the value corresponding to this key,
-        if it was specified.
+        Returns the valid range for this key's value, if specified.
 
         Args:
-            key: the key to get the range from. 
+            key: the key to get the range from.
 
-        Returns: 
+        Returns:
             the range of values allowed for this key, or None if there is no
             range defined for this key.
 
@@ -651,8 +761,7 @@ class CheckedDict(dict):
 
     def getType(self, key: str) -> Union[type, Tuple[type,...]]:
         """
-        Returns the expected type for key, as a type which can be passed
-        to isinstance
+        Returns the expected type for key's value
 
         Args:
             key: the key to query
@@ -684,8 +793,7 @@ class CheckedDict(dict):
 
     def getTypestr(self, key: str) -> str:
         """
-        The same as `.getType` but returns a string representation of the type/types
-        possible for the value of this key
+        The same as `.getType` but returns a string representation of the type
 
         Args:
             key: the key to query
@@ -698,7 +806,7 @@ class CheckedDict(dict):
 
     def reset(self) -> None:
         """
-        Resets the config to its default (inplace), and saves it.
+        Resets the config to its default (inplace)
         """
         self.clear()
         self.update(self.default)
@@ -720,7 +828,7 @@ class CheckedDict(dict):
 
     def updated(self:T, d: dict=None, **kws) -> T:
         """
-        The same as :meth:`~CheckedDict.update`, but returns self after the operation
+        The same as :meth:`~CheckedDict.update`, but returns self
         """
         self.update(d, **kws)
         return self
@@ -737,6 +845,77 @@ class CheckedDict(dict):
         """
         return _asYaml(self, doc=self._docs, validator=self._validator,
                        default=self.default, sortKeys=sortKeys)
+
+    def __enter__(self):
+        self._building = True
+        return self
+
+    def __exit__(self, *args, **kws):
+        self._building = False
+        self.load()
+
+    def edit(self, waitOnModified=True) -> None:
+        configfile = tempfile.mktemp(suffix=".yaml")
+        header = _editHeaderWatch if waitOnModified else _editHeaderPopup
+        self._saveAsYaml(configfile, header=header)
+        _openInEditor(configfile)
+        if waitOnModified:
+            try:
+                _waitOnFileModified(configfile)
+            except KeyboardInterrupt:
+                logger.debug("Editing aborted")
+                return
+        else:
+            _waitForClick(title=self.name)
+        self.load(configfile)
+
+    def _saveAsYaml(self, path:str, header:str='', sortKeys=False) -> None:
+        yamlstr = self.asYaml(sortKeys=sortKeys)
+        with open(path, "w") as f:
+            if header:
+                f.write(header)
+                f.write("\n")
+            f.write(yamlstr)
+
+    def _repr_html_(self) -> str:
+        parts = [f'<div><h4>CheckedDict</h4>']
+        parts.append("<br>")
+        rows = []
+        for k in self.keys():
+            v = self[k]
+            rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
+        table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
+                           rowstyles=('strong', 'code', None, None))
+        parts.append(table)
+        parts.append("</div>")
+        return "".join(parts)
+
+
+def _loadJson(path:str) -> Opt[dict]:
+    try:
+        return json.load(open(path))
+    except json.JSONDecodeError:
+        error = sys.exc_info()[0]
+        logger.error(f"Could not read config {path}: {error}")
+        logger.debug("Using default as fallback")
+
+
+def _loadYaml(path: str) -> Opt[dict]:
+    try:
+        with open(path) as f:
+            return yaml.load(f, Loader=yaml.SafeLoader)
+    except:
+        logger.error(f"Could not read config {path}")
+
+
+def _loadDict(path: str) -> Opt[dict]:
+    fmt = os.path.splitext(path)[1]
+    if fmt == ".json":
+        return _loadJson(path)
+    elif fmt == ".yaml":
+        return _loadYaml(path)
+    else:
+        raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
 
 
 class ConfigDict(CheckedDict):
@@ -776,15 +955,16 @@ class ConfigDict(CheckedDict):
 
         persistent: if True, any change to the dict will be saved.
 
-        load: if True, the saved version will be loaded after creation. This is disabled if
-            no default dict is given. .load should be called manually in this case (see example)
+        load: if True, the saved version will be loaded after creation. 
+            This is disabled if no default dict is given. .load should be called 
+            manually in this case (see example)
 
         precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
             If given, it is called *before* the modification is done. This function
-            should return **None** to allow modification, **any value** to modify the value, or
-            **raise ValueError** to stop the transaction
+            should return **None** to allow modification, **any value** to modify the 
+            value, or **raise ValueError** to stop the transaction
 
-        sortKeys: if True, keys are sorted whenever the dict is saved/edited. 
+        sortKeys: if True, keys are sorted whenever the dict is saved/edited.
 
 
     Example
@@ -798,6 +978,20 @@ class ConfigDict(CheckedDict):
         config.addKey("keyC", "blue", choices=("blue", "red"),
                       doc="documentation of keyC")
         config.load()
+
+        # Alternatively, a config can be built using in a context manager. 'load'
+        is called when exiting the context:
+
+        config = ConfigDict("maelzel.snd.plotting")
+        with config as _:
+            # this calls addKey
+            _('backend', 'matplotlib', choices={'matlotlib'})
+            _('spectrogram.colormap', 'inferno', choices=_cmaps)
+            _('samplesplot.figsize', (24, 4))
+            _('spectrogram.figsize', (24, 8))
+            _('spectrogram.maxfreq', 12000,
+              doc="Highest frequency in a spectrogram")
+            _('spectrogram.window', 'hamming', choices={'hamming', 'hanning'})
 
         # The same effect can be achieved by passing the default/validator/doc
 
@@ -828,6 +1022,7 @@ class ConfigDict(CheckedDict):
     _registry: Dict[str, ConfigDict] = {}
 
     _helpwidth: int = 58
+    _infowidth: int = 58
 
     def __init__(self,
                  name: str,
@@ -840,36 +1035,39 @@ class ConfigDict(CheckedDict):
                  fmt='yaml',
                  sortKeys=False) -> None:
 
-        if name:
-            name = _normalizeName(name)
-            if not _isValidName(name):
-                raise ValueError(f"name {name} is invalid for a config")
-        if name in ConfigDict._registry:
-            logger.warning("A ConfigDict with the given name already exists!")
-        self.fmt = fmt
-
-        cfg = getConfig(name)
-        if cfg and default != cfg.default:
-            logger.warning(f"ConfigDict: config with name {name} already created"
-                           "with different defaults. It will be overwritten")
-        super().__init__(default=default,
-                         validator=validator,
-                         docs=docs,
-                         callback=self._mycallback,
-                         precallback=precallback)
         self._name = ''
         self._base = ''
         self._persistent = False
         self._configPath = None
         self._callbacks = []
         self._loaded = False
-        self.sortKeys = sortKeys
 
         if name:
+            name = _normalizeName(name)
+            if not _isValidName(name):
+                raise ValueError(f"name {name} is invalid for a config")
+
+            if name in ConfigDict._registry:
+                logger.warning("A ConfigDict with the given name already exists!")
+
+            cfg = getConfig(name)
+            if cfg and default != cfg.default:
+                logger.warning(f"ConfigDict: config with name {name} already created"
+                               "with different defaults. It will be overwritten")
             self.name = name
         else:
             persistent = False
             load = False
+
+        self.fmt = fmt
+
+        super().__init__(default=default,
+                         validator=validator,
+                         docs=docs,
+                         callback=self._mycallback,
+                         precallback=precallback,
+                         autoload=False)
+        self.sortKeys = sortKeys
 
         self.persistent = persistent
 
@@ -919,7 +1117,7 @@ class ConfigDict(CheckedDict):
         """
         for pattern, func in self._callbacks:
             if re.match(pattern, key):
-                func(key, value)
+                func(self, key, value)
         if self._persistent:
             self.save()
 
@@ -951,15 +1149,18 @@ class ConfigDict(CheckedDict):
 
     def copy(self) -> ConfigDict:
         """
-        Create a copy if this ConfigDict. The resulting copy will be unnamed
-        and thus not persistent.
+        Create a copy if this ConfigDict.
+
+        The copy will be unnamed and not persistent. Use :meth:`ConfigDict.clone`
+        to create a named/persistent clone of this dict.
 
         Returns:
             the copy of this dict
         """
         return self.clone(name='', persistent=False, cloneCallbacks=False)
 
-    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=False,
+    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=True,
+              updates:dict=None, **kws
               ) -> ConfigDict:
         """
         Create a clone of this dict
@@ -971,17 +1172,23 @@ class ConfigDict(CheckedDict):
                 made persitent?
             cloneCallbacks: should the registered callbacks of the original (if any) be
                 also cloned?
+            updates: a dict with updates values
+            **kws: same as updates but only for keys which are valid keywords
 
         Returns:
             the cloned dict
         """
-        if name == self._name or name in self._registry:
+        if name and name == self._name or name in self._registry:
             raise ValueError(f"name {name} is already taken!")
         out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
                          persistent=False, load=False, name=name)
-        out.update(self)
         if name and persistent:
             out._persistent = True
+        out.update(self)
+        if updates:
+            out.update(updates)
+        if kws:
+            out.update(**kws)
         if cloneCallbacks and self._callbacks:
             for pattern, func in self._callbacks:
                 out.registerCallback(func, pattern)
@@ -989,15 +1196,15 @@ class ConfigDict(CheckedDict):
 
     def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=r".*") -> None:
         """
-        Register a callback to be fired when a key matching the given pattern is changed. 
+        Register a callback to be fired when a key matching the given pattern is changed.
 
         If no pattern is given, the function will be called for every key.
 
         Args:
-            func: a function of the form ``(key, value) -> None``, where *dict* is
+            func: a function of the form ``(dict, key, value) -> None``, where *dict* is
                 this ConfigDict itself, *key* is the key which was just changed and *value*
                 is the new value.
-            pattern: a regex pattern. The function will be called if the pattern matches 
+            pattern: a regex pattern. The function will be called if the pattern matches
                 the key being modified.
 
         """
@@ -1016,6 +1223,8 @@ class ConfigDict(CheckedDict):
 
     def save(self, path:str=None, header:str='') -> None:
         """
+        Save this dict to `path` or to its persistent path
+
         Normally a config doesn't need to be saved by the user,
         it is saved whenever it is modified.
 
@@ -1023,7 +1232,7 @@ class ConfigDict(CheckedDict):
             path (str): the path to save the config. If None and this
                 is a named config, it is saved to the path returned by
                 :meth:`~ConfigDict.getPath`
-            header: if given, this string is written prior to the dict, as 
+            header: if given, this string is written prior to the dict, as
                 a comment. This is only supported when saving to yaml
         """
         if path is None:
@@ -1040,12 +1249,7 @@ class ConfigDict(CheckedDict):
             with open(path, "w") as f:
                 json.dump(self, f, indent=True, sort_keys=True)
         elif fmt == 'yaml':
-            yamlstr = self.asYaml(sortKeys=self.sortKeys)
-            with open(path, "w") as f:
-                if header:
-                    f.write(header)
-                    f.write("\n")
-                f.write(yamlstr)
+            self._saveAsYaml(path, header=header, sortKeys=self.sortKeys)
         elif fmt == 'csv':
             csvstr = self.asCsv()
             open(path, "w").write(csvstr)
@@ -1064,9 +1268,10 @@ class ConfigDict(CheckedDict):
 
     def generateRstDocumentation(self) -> str:
         """
-        Generate ReST documentation for this dictionary, using
-        definition lists. The generated string can then be dumped
-        to a file and included in documentation  
+        Generate ReST documentation for this dictionary
+
+        The generated string can then be dumped to a file and included
+        in documentation
         """
         lines = []
         _ = lines.append
@@ -1096,7 +1301,7 @@ class ConfigDict(CheckedDict):
         writer = csv.writer(s)
         writer.writerows(rows)
         return s.getvalue()
-        
+
     def _infoStr(self, k: str) -> str:
         info = []
         choices = self.getChoices(k)
@@ -1122,15 +1327,15 @@ class ConfigDict(CheckedDict):
         for k in self.keys():
             v = self[k]
             rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
-        table = _html_table(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400], 
-                            rowstyles=('strong', 'code', None, None))
+        table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
+                           rowstyles=('strong', 'code', None, None))
         parts.append(table)
         parts.append("</div>")
         return "".join(parts)
 
     def _repr_pretty_(self, printer, cycle) -> str:
         return printer.text(str(self))
-        
+
     def _repr_rows(self) -> List[str]:
         rows = []
         keys = sorted(self.keys())
@@ -1138,16 +1343,19 @@ class ConfigDict(CheckedDict):
             v = self[k]
             lines = []
             infostr = self._infoStr(k)
+            if len(infostr) > self._infowidth:
+                infolines = textwrap.wrap(infostr, self._infowidth)
+                infostr = "\n".join(infolines)
             valuestr = str(v)
             rows.append((k, valuestr, infostr))
             doc = self.getDoc(k)
             if doc:
-                doclines = textwrap.wrap(doc, self._helpwidth)
-                lines.extend(doclines)
-            for line in lines:
-                rows.append(("", "", line))
+                if len(doc) > self._helpwidth:
+                    doclines = textwrap.wrap(doc, self._helpwidth)
+                    doc = "\n".join(doclines)
+                rows.append(("", "", doc))
         return rows
-        
+
     def __str__(self) -> str:
         import tabulate
         header = f"Config: {self._name}\n"
@@ -1160,14 +1368,14 @@ class ConfigDict(CheckedDict):
             self._configPath = configPathFromName(self._name, self.fmt)
         return self._configPath
 
-    def edit(self, waitOnModified=True, persist=True) -> None:
+    def edit(self, waitOnModified=True) -> None:
         """
-        Edit this config by opening it in an external application. 
+        Edit this config by opening it in an external application.
 
-        The format used is *yaml*. This is independent of the format used for 
-        persistence. The application used is the user's default application 
-        for the .yaml format and can be configured at the os level. In macos 
-        we use ``open``, in linux ``xdg-open`` and in windows ``start``, which 
+        The format used is *yaml*. This is independent of the format used for
+        persistence. The application used is the user's default application
+        for the .yaml format and can be configured at the os level. In macos
+        we use ``open``, in linux ``xdg-open`` and in windows ``start``, which
         all respond to the user's own configuration regarding default applications.
 
         .. note::
@@ -1190,23 +1398,27 @@ class ConfigDict(CheckedDict):
         _openInEditor(configfile)
         if waitOnModified:
             try:
+                _notify(f"Config Edit: {self.name}", "Modify the values as needed. Save the file to accept the changes "
+                        "or press ctrl-c at the python prompt to cancel")
                 _waitOnFileModified(configfile)
+                _notify("Edit", "Editing finished, any further modifications will have no effect")
             except KeyboardInterrupt:
                 logger.debug("Editing aborted")
+                _notify(f"Config Edit: {self.name}", "Editing aborted")
                 return
         else:
             _waitForClick(title=self.name)
         self.load(configfile)
-        if persist and self.persistent:
+        if self.persistent:
             self.save()
-
+            
     def _updateWithDefault(self) -> None:
         try:
             super().update(self.default)
         except ValueError as e:
             errmsg = textwrap.indent(str(e), prefix="    ")
             raise ValueError(f"Could not load default dict, error:\n{errmsg}")
-        
+
     def _fill(self, other: dict) -> None:
 
         for key in other:
@@ -1217,7 +1429,9 @@ class ConfigDict(CheckedDict):
         """
         Read the saved config, update self.
         """
-        if len(self) == 0 and self.default:
+        assert self.default
+        if len(self) == 0:
+            # load after defining the default
             super().update(self.default)
         if configpath is None:
             configpath = self.getPath()
@@ -1226,27 +1440,12 @@ class ConfigDict(CheckedDict):
             super().update(self.default)
             return
         logger.debug(f"Reading config from disk: {configpath}")
-        if self.default is None:
-            raise ValueError("Default config not set")
-
-        fmt = os.path.splitext(configpath)[1]
-        if fmt == ".json":
-            try:
-                confdict = json.load(open(configpath))
-            except json.JSONDecodeError:
-                error = sys.exc_info()[0]
-                logger.error(f"Could not read config {configpath}: {error}")
-                logger.debug("Using default as fallback")
-                confdict = self.default
-        elif fmt == ".yaml":
-            try:
-                with open(configpath) as f:
-                    confdict = yaml.load(f, Loader=yaml.SafeLoader)
-            except:
-                logger.error(f"Could not read config {configpath}")
-                confdict = self.default
-        else:
-            raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
+        confdict = _loadDict(configpath)
+        assert confdict
+        if confdict is None:
+            logger.error("Could not load saved config, skipping")
+            # self.update(self.default)
+            return
 
         # only keys in default should be accepted, but keys in the read
         # config should be discarded with a warning
@@ -1254,7 +1453,7 @@ class ConfigDict(CheckedDict):
         needsSave = False
         if keysNotInDefault:
             logger.warning(f"ConfigDict {self._name}, saved at {configpath}\n"
-                           "There are keys defined in the saved config which are not" 
+                           "There are keys defined in the saved config which are not"
                            " present in the default config, they will be skipped: \n"
                            f"   {keysNotInDefault}")
             for k in keysNotInDefault:
@@ -1264,18 +1463,23 @@ class ConfigDict(CheckedDict):
         # merge strategy:
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
-        
-        errormsg = self.checkDict(confdict)
-        if errormsg:
-            logger.error(f"Could not load saved dict: {errormsg}, using default")
-            logger.error("To revert to default permanently, do:\n"
-                         "    from configdict import getConfig \n"
-                        f"    getConfig('{self.name}').reset()")
-        else:
-            super().update(confdict)
+
+        # check invalid values
+        keysWithInvalidValues = []
+        for k, v in confdict.items():
+            errormsg = self.checkValue(k, v)
+            if errormsg:
+                logger.error(errormsg)
+                logger.error(f"    Using default: {self.default[k]}")
+                keysWithInvalidValues.append(k)
+        for k in keysWithInvalidValues:
+            del confdict[k]
+
+        super().update(confdict)
         self._loaded = True
         if needsSave and self.persistent:
             self.save()
+            
 
 
 def _makeName(configname: str, base: str = None) -> str:
@@ -1349,10 +1553,12 @@ def _checkName(name):
 
 def getConfig(name: str) -> Opt[ConfigDict]:
     """
-    Retrieve a previously created ConfigDict. This will NOT load a saved config,
-    since for a ConfigDict to be properly defined a default config must accompany
-    the saved version. In order to load a saved config as default just load it as
-    a normal .yaml or .json file and use that dict as the default.
+    Retrieve a previously created ConfigDict.
+
+    This will NOT load a saved config since for a ConfigDict to be properly
+    defined a default config must accompany the saved version. In order to
+    load a saved config as default just load it as a normal .yaml or .json
+    file and use that dict as the default.
 
     Args:
         name: the unique id of the configuration, as passed to ConfigDict
@@ -1361,6 +1567,7 @@ def getConfig(name: str) -> Opt[ConfigDict]:
         the ConfigDict, if found. None otherwise.
 
     """
+    assert name, "name is empty"
     name = _normalizeName(name)
     _checkName(name)
     return ConfigDict._registry.get(name)
@@ -1411,4 +1618,3 @@ def configPathFromName(name: str, fmt='yaml') -> str:
     else:
         configdir = userconfigdir
     return os.path.join(configdir, configfile)
-
