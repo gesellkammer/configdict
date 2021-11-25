@@ -3,6 +3,6 @@
 .idea
 dist
 *.pyc
-docs/_*
+docs/_build
 docs/api
 *.sublime-workspace
