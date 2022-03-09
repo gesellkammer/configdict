@@ -88,7 +88,7 @@ import tempfile
 from types import FunctionType
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (Optional as Opt, Any, Tuple, Dict, Union, Callable, TypeVar)
+    from typing import (Optional as Opt, Any, Tuple, Dict, List, Union, Callable, TypeVar)
     validatefunc_t = Callable[[dict, str, Any], bool]
     T = TypeVar("T")
 
@@ -143,15 +143,17 @@ def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
     def convert(text: str):
         return int(text) if text.isdigit() else text.lower()
 
-    def alphanum_key(key:str):
+    def alphanum_key(key: str):
         return [convert(c) for c in re.split('([0-9]+)', key)]
 
     if key is not None:
         return sorted(seq, key=lambda x: alphanum_key(key(x)))
     return sorted(seq, key=alphanum_key)
 
+
 def _asChoiceStr(x) -> str:
     return f"'{x}'" if isinstance(x, str) else str(x)
+
 
 def _yamlComment(doc: Opt[str],
                  default: Any,
@@ -201,6 +203,8 @@ def _yamlComment(doc: Opt[str],
 
 
 def _yamlValue(value) -> str:
+    if isinstance(value, tuple):
+        value = list(value)
     s = yaml.dump(value, default_flow_style=True)
     return s.replace("\n...\n", "")
 
@@ -219,7 +223,7 @@ def _typeName(t: Union[str, type, Tuple[type,...]]) -> str:
 def _asYaml(d: Dict[str, Any],
             doc: Dict[str, str],
             default: Dict[str, Any],
-            validator: Dict[str, Any]=None,
+            validator: Dict[str, Any] = None,
             sortKeys=False
             ) -> str:
     lines = []
@@ -301,7 +305,7 @@ def _isfloaty(value) -> bool:
     return isinstance(value, (int, float)) or hasattr(value, '__float__')
 
 
-def _openInStandardApp(path:str) -> None:
+def _openInStandardApp(path: str) -> None:
     """
     Open path with the app defined to handle it by the user
     at the os level (xdg-open in linux, start in win, open in osx)
@@ -363,7 +367,7 @@ def _waitOnFileModified(path:str, timeout:float=None, notification:str='') -> bo
     return modified
 
 
-def _showInfoDialog(msg: str, title: str=None) -> None:
+def _showInfoDialog(msg: str, title: str = None) -> None:
     """
     Creates a simple confirmation dialog box
 
@@ -457,7 +461,7 @@ class CheckedDict(dict):
                  default: Dict[str, Any] = None,
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
-                 callback:Callable[[str, Any], None]=None,
+                 callback: Callable[[str, Any], None] = None,
                  precallback=None,
                  autoload=True) -> None:
 
@@ -483,7 +487,7 @@ class CheckedDict(dict):
                           precallback=self._precallback, callback=self._callback)
         return out
 
-    def clone(self:T, updates:dict=None, **kws) -> T:
+    def clone(self: T, updates: dict = None, **kws) -> T:
         """
         Clone self with modifications
 
@@ -521,9 +525,9 @@ class CheckedDict(dict):
                 out[key] = value
         return out
 
-    def __call__(self, key:str, value:Any, type=None, choices=None,
-                 range:Tuple[Any, Any]=None, doc:str='',
-                 validatefunc:validatefunc_t=None) -> None:
+    def __call__(self, key: str, value: Any, type=None, choices=None,
+                 range: Tuple[Any, Any] = None, doc: str = '',
+                 validatefunc: validatefunc_t = None) -> None:
         if not self._building:
             raise RuntimeError("Not inside a context manager context")
         self.addKey(key=key, value=value, type=type, choices=choices,
@@ -734,8 +738,11 @@ class CheckedDict(dict):
             return f"Expected str or bytes for key {key}, got {type(value).__name__}"
         elif not isinstance(value, t):
             return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
+        elif isinstance(value, tuple):
+            return "Tuples are not allowed as values. Use a list instead"
+
         r = self.getRange(key)
-        if r and not (r[0]<=value<=r[1]):
+        if r and not (r[0] <= value <= r[1]):
             return f"Value for key {key} should be within range {r}, got {value}"
         return None
 
@@ -878,7 +885,7 @@ class CheckedDict(dict):
             f.write(yamlstr)
 
     def _repr_html_(self) -> str:
-        parts = [f'<div><h4>CheckedDict</h4>']
+        parts = ['<div><h4>CheckedDict</h4>']
         parts.append("<br>")
         rows = []
         for k in self.keys():
@@ -1023,6 +1030,7 @@ class ConfigDict(CheckedDict):
 
     _helpwidth: int = 58
     _infowidth: int = 58
+    _valuewidth: int = 36
 
     def __init__(self,
                  name: str,
@@ -1137,9 +1145,8 @@ class ConfigDict(CheckedDict):
         errormsg = self.checkDict(kws)
         if errormsg:
             logger.error(f"ConfigDict: {errormsg}")
-            logger.error(
-                    f"Reset the dict to a default by removing the file '{self.getPath()}'"
-            )
+            logger.error(f"Reset the dict to a default by removing the"
+                         f" file '{self.getPath()}'")
             raise ValueError(f"dict is invalid: {errormsg}")
         self._persistent, persistent = False, self._persistent
         super().update(kws)
@@ -1315,7 +1322,7 @@ class ConfigDict(CheckedDict):
             info.append(f"between {low} - {high}")
         else:
             typestr = self.getTypestr(k)
-            info.append(typestr)
+            info.append("type: " + typestr)
         return" | ".join(info) if info else ""
 
     def _repr_html_(self) -> str:
@@ -1337,21 +1344,30 @@ class ConfigDict(CheckedDict):
         return printer.text(str(self))
 
     def _repr_rows(self) -> List[str]:
+        try:
+            termwidth = os.get_terminal_size()[0] - 6
+        except OSError:
+            termwidth = 80
+        maxwidth = self._infowidth + self._valuewidth + max(len(k) for k in self.keys())
+        infowidth = int(self._infowidth / maxwidth * termwidth)
+        valuewidth = int(self._valuewidth / maxwidth * termwidth)
+        print(f"{infowidth=}, {valuewidth=}, {maxwidth=}, {termwidth=}")
         rows = []
         keys = sorted(self.keys())
         for k in keys:
             v = self[k]
-            lines = []
             infostr = self._infoStr(k)
-            if len(infostr) > self._infowidth:
-                infolines = textwrap.wrap(infostr, self._infowidth)
+            if len(infostr) > infowidth:
+                infolines = textwrap.wrap(infostr, infowidth)
                 infostr = "\n".join(infolines)
             valuestr = str(v)
+            if len(valuestr) > valuewidth:
+                valuestr = "\n".join(textwrap.wrap(valuestr, valuewidth))
             rows.append((k, valuestr, infostr))
             doc = self.getDoc(k)
             if doc:
-                if len(doc) > self._helpwidth:
-                    doclines = textwrap.wrap(doc, self._helpwidth)
+                if len(doc) > infowidth:
+                    doclines = textwrap.wrap(doc, infowidth)
                     doc = "\n".join(doclines)
                 rows.append(("", "", doc))
         return rows
@@ -1479,7 +1495,6 @@ class ConfigDict(CheckedDict):
         self._loaded = True
         if needsSave and self.persistent:
             self.save()
-            
 
 
 def _makeName(configname: str, base: str = None) -> str:
@@ -1547,8 +1562,8 @@ def _checkName(name):
     """
     if not _isValidName(name):
         raise ValueError(
-                f"{name} is not a valid name for a config."
-                " It should contain letters, numbers and any of '.', '_', ':'")
+            f"{name} is not a valid name for a config."
+            " It should contain letters, numbers and any of '.', '_', ':'")
 
 
 def getConfig(name: str) -> Opt[ConfigDict]:
