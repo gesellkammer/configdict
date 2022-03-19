@@ -8,6 +8,7 @@ define a docstring for each key and different restrictions for the values
 regarding possible values, ranges and type. A CheckedDict is useful for
 configuration settings.
 
+If no mutable values are used, a CheckedDict is hashable
 
 ConfigDict
 ----------
@@ -475,6 +476,11 @@ class CheckedDict(dict):
         self._building = False
         if self.default and autoload:
             self.load()
+
+    def __hash__(self) -> int:
+        keyshash = hash(tuple(self.keys()))
+        valueshash = hash(tuple(self.values()))
+        return hash((len(self), keyshash, valueshash, hash(self._precallback), hash(self._callback)))
 
     def _changed(self) -> None:
         self._allowedkeys = set(self.default.keys())
