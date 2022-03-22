@@ -89,7 +89,7 @@ import tempfile
 from types import FunctionType
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (Optional as Opt, Any, Tuple, Dict, List, Union, Callable, TypeVar)
+    from typing import (Optional as Opt, Any, Tuple, Dict, List, Union, Callable, TypeVar, Set)
     validatefunc_t = Callable[[dict, str, Any], bool]
     T = TypeVar("T")
 
@@ -519,6 +519,12 @@ class CheckedDict(dict):
         out.update(kws)
         return out
 
+    def makeDefault(self: T) -> T:
+        """
+        Create a version of this class with all values set to the default
+        """
+        return self.clone(updates=self)
+
     def diff(self) -> dict:
         """
         Get a dict containing keys:values which differ from default
@@ -542,8 +548,8 @@ class CheckedDict(dict):
     def addKey(self,
                key: str,
                value: Any,
-               type: Union[type, Tuple[type,...]]=None,
-               choices=None,
+               type: Union[type, Tuple[type,...]] = None,
+               choices: Union[Set, Tuple] = None,
                range: Tuple[Any, Any] = None,
                validatefunc: validatefunc_t = None,
                doc: str = None) -> None:
@@ -572,7 +578,7 @@ class CheckedDict(dict):
             key: a string key
             value: a default value
             type: the type accepted, as passed to isinstance (can be a tuple)
-            choices: a seq of possible values
+            choices: a set/tuple of possible values
             range: a (min, max) tuple defining an allowed range for this value
             validatefunc: a function ``(config: dict, key:str, value) -> bool``, should return
                 `True` if value is valid for `key` or False otherwise
@@ -913,12 +919,15 @@ def _loadJson(path:str) -> Opt[dict]:
         logger.debug("Using default as fallback")
 
 
-def _loadYaml(path: str) -> Opt[dict]:
+def _loadYaml(path: str, fail=False) -> Opt[dict]:
     try:
         with open(path) as f:
             return yaml.load(f, Loader=yaml.SafeLoader)
-    except:
-        logger.error(f"Could not read config {path}")
+    except Exception as e:
+        err = sys.exc_info()[0]
+        logger.error(f"Could not read config {path}: {err}")
+        if fail:
+            raise e
 
 
 def _loadDict(path: str) -> Opt[dict]:
@@ -926,7 +935,7 @@ def _loadDict(path: str) -> Opt[dict]:
     if fmt == ".json":
         return _loadJson(path)
     elif fmt == ".yaml":
-        return _loadYaml(path)
+        return _loadYaml(path, fail=False)
     else:
         raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
 
@@ -1357,7 +1366,6 @@ class ConfigDict(CheckedDict):
         maxwidth = self._infowidth + self._valuewidth + max(len(k) for k in self.keys())
         infowidth = int(self._infowidth / maxwidth * termwidth)
         valuewidth = int(self._valuewidth / maxwidth * termwidth)
-        print(f"{infowidth=}, {valuewidth=}, {maxwidth=}, {termwidth=}")
         rows = []
         keys = sorted(self.keys())
         for k in keys:
@@ -1463,10 +1471,8 @@ class ConfigDict(CheckedDict):
             return
         logger.debug(f"Reading config from disk: {configpath}")
         confdict = _loadDict(configpath)
-        assert confdict
         if confdict is None:
             logger.error("Could not load saved config, skipping")
-            # self.update(self.default)
             return
 
         # only keys in default should be accepted, but keys in the read
