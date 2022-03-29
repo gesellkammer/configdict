@@ -1177,31 +1177,33 @@ class ConfigDict(CheckedDict):
         """
         return self.clone(name='', persistent=False, cloneCallbacks=False)
 
-    def clone(self, name: str = '', persistent: bool=None, cloneCallbacks=True,
+    def isCongruentWith(self, other: ConfigDict) -> bool:
+        """
+        Returns True if self and other share same default
+        """
+        return self.default == other.default
+        
+    def clone(self, name: str = None, persistent=False, cloneCallbacks=True,
               updates:dict=None, **kws
               ) -> ConfigDict:
         """
         Create a clone of this dict
 
         Args:
-            name: the name of the clone. If a name is not given, the clone cannot be
-                made persistent
-            persistent: given that this clone has a distinct name, should the clone be
-                made persitent?
+            name: the name of the clone. If not given, the name of this dict is used. 
+            persistent: Should the clone be made persitent? 
             cloneCallbacks: should the registered callbacks of the original (if any) be
-                also cloned?
-            updates: a dict with updates values
+                cloned?
+            updates: a dict with updates
             **kws: same as updates but only for keys which are valid keywords
 
         Returns:
             the cloned dict
         """
-        if name and name == self._name or name in self._registry:
-            raise ValueError(f"name {name} is already taken!")
+        if name is None:
+            name = self._name
         out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
-                         persistent=False, load=False, name=name)
-        if name and persistent:
-            out._persistent = True
+                         persistent=persistent, load=False, name=name)
         out.update(self)
         if updates:
             out.update(updates)
