@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 
 readme = open('README.rst').read()
-version = (1, 1, 0)
+version = (2, 0, 0)
 
 setup(
     name='configdict',
     python_requires=">=3.8",
     version=".".join(map(str, version)),
-    description='A persistent dict used as configuration',
+    description='A supercharged dict used as configuration',
     long_description=readme,
     author='Eduardo Moguillansky',
     author_email='eduardo.moguillansky@gmail.com',

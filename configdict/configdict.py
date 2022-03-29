@@ -942,15 +942,16 @@ def _loadDict(path: str) -> Opt[dict]:
 
 class ConfigDict(CheckedDict):
     """
-    This is a (optionally) persistent, unique dictionary used for configuration
-    of a module / app. It is saved under the config folder determined by
-    the OS (and is thus OS dependent) and no two instances of the same
+    This is an optionally persistent dictionary used for configuration.
+
+    It is saved under the config folder determined by
+    the OS (and is thus OS dependent). In persistent mode no two instances of the same
     config can coexist.
 
     Args:
         name: a str of the form ``prefix.name`` or ``prefix/name``
             (these are the same) or simply ``name`` if this is an
-            isolated configuration (not part of a bigger project). The
+            isolated configuration. The
             data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if
             prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
             For instance, in Linux a config with a name "myproj.myconfig" and
@@ -975,11 +976,13 @@ class ConfigDict(CheckedDict):
 
         docs: a dict containing documentation for each key
 
-        persistent: if True, any change to the dict will be saved.
+        persistent: if True, any change to the dict will be automatically saved.
+            Otherwise a dict can be saved manually via :meth:`ConfigDict.save`
 
         load: if True, the saved version will be loaded after creation. 
-            This is disabled if no default dict is given. .load should be called 
-            manually in this case (see example)
+            This is disabled if no default dict is given. This is the case when building
+            the default after creation - :meth:`ConfigDict.load` should be called
+            manually in this case (see example).
 
         precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
             If given, it is called *before* the modification is done. This function
@@ -1053,14 +1056,14 @@ class ConfigDict(CheckedDict):
                  validator: Dict[str, Any] = None,
                  docs: Dict[str, str] = None,
                  precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
-                 persistent=True,
+                 persistent=False,
                  load=True,
                  fmt='yaml',
                  sortKeys=False) -> None:
 
         self._name = ''
         self._base = ''
-        self._persistent = False
+        self._persistent = persistent
         self._configPath = None
         self._callbacks = []
         self._loaded = False
@@ -1069,17 +1072,17 @@ class ConfigDict(CheckedDict):
             name = _normalizeName(name)
             if not _isValidName(name):
                 raise ValueError(f"name {name} is invalid for a config")
-
-            if name in ConfigDict._registry:
-                logger.warning("A ConfigDict with the given name already exists!")
-
-            cfg = getConfig(name)
-            if cfg and default != cfg.default:
-                logger.warning(f"ConfigDict: config with name {name} already created"
-                               "with different defaults. It will be overwritten")
-            self.name = name
+            previous = self._registry.get(name)
+            if previous:
+                if persistent and previous.persistent:
+                    raise ValueError(f"A persistent ConfigDict with the name {name} already exists!")
+                elif default != previous.default:
+                    logger.warning(f"ConfigDict: instance with name {name} already created"
+                                   "with different defaults. It will be overwritten")
+            self._registry[name] = self
+            self._name = name
         else:
-            persistent = False
+            assert not persistent, f"A persistent dict needs a name"
             load = False
 
         self.fmt = fmt
@@ -1092,11 +1095,8 @@ class ConfigDict(CheckedDict):
                          autoload=False)
         self.sortKeys = sortKeys
 
-        self.persistent = persistent
-
         if default is not None:
             self._updateWithDefault()
-
             if load:
                 self.load()
 
@@ -1104,21 +1104,8 @@ class ConfigDict(CheckedDict):
     def name(self) -> Opt[str]:
         """
         The name of this ConfigDict. The name determines where it is saved
-        (if persist==True)
         """
         return self._name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        if self._name:
-            raise ValueError("Name has already been set")
-
-        if name and name in self._registry:
-            raise ValueError(f"Name {name} is already used")
-        self._name = name
-        base, configname = _parseName(name)
-        self._base: str = base
-        self._registry[name] = self
 
     @property
     def persistent(self) -> bool:
@@ -1127,11 +1114,20 @@ class ConfigDict(CheckedDict):
 
     @persistent.setter
     def persistent(self, value) -> None:
+        """Make this dict persistent. There can only be one persistent dict per name"""
+        if self._persistent == value:
+            return
         self._persistent = value
         if value:
+            if self._name in self._registry:
+                raise ValueError(f"A persistent ConfigDict with the name {self._name} already exists")
             if not self._name:
                 raise ValueError("A ConfigDict without namecannot be set to persistent")
             self._ensureWritable()
+            self._registry[self._name] = self
+        else:
+            assert self._name in self._registry
+            del self._registry[self._name]
 
     def _mycallback(self, key, value):
         """
@@ -1247,8 +1243,9 @@ class ConfigDict(CheckedDict):
         """
         Save this dict to `path` or to its persistent path
 
-        Normally a config doesn't need to be saved by the user,
-        it is saved whenever it is modified.
+        A persistent config doesn't need to be saved by the user,
+        it is saved whenever it is modified. This method can be
+        used to explicitely save a config
 
         Args:
             path (str): the path to save the config. If None and this
