@@ -554,9 +554,10 @@ class CheckedDict(dict):
                validatefunc: validatefunc_t = None,
                doc: str = None) -> None:
         """
-        Add a ``key: value`` pair to the default settings. This is used when building the
-        default config item by item (see example). After adding all new keys it is
-        necessary to call ``.load()``
+        Add a ``key: value`` pair to the default settings.
+
+        This is used when building the default config item by item (see example).
+        After adding all new keys it is necessary to call :meth:`ConfigDict.load()`
 
         Example
         =======
@@ -958,8 +959,10 @@ class ConfigDict(CheckedDict):
             a yaml format will be saved to "~/.config/mydir/myconfig.yaml"
 
         default: a dict with all default values. A config can accept only
-            keys which are already present in the default. This value can be
-            left as None if the config is built successively. See example below
+            keys which are already present in the default. This argument can be
+            None if the config is built successively via :meth:`ConfigDict.addKey`
+            (see example below) but the dict is not usable until all the keys have
+            been added and the user calls :meth:`ConfigDict.load` explicitely
 
         validator: a dict containing choices, types and/or ranges for the keys in the
             default. Given a default like: ``{'keyA': 'foo', 'keyB': 20}``,
@@ -997,6 +1000,9 @@ class ConfigDict(CheckedDict):
 
     .. code::
 
+        # No default given. The default is built by adding keys subsequently.
+        # load needs to be called to end the declaration
+        # This method is somewhat similar to ArgParse
         config = ConfigDict("myproj.subproj")
         config.addKey("keyA", 10, doc="documentaion of keyA")
         config.addKey("keyB", 0.5, range=(0, 1))
@@ -1004,19 +1010,16 @@ class ConfigDict(CheckedDict):
                       doc="documentation of keyC")
         config.load()
 
-        # Alternatively, a config can be built using in a context manager. 'load'
+        # Alternatively, a config can be built within a context manager. 'load'
         is called when exiting the context:
 
-        config = ConfigDict("maelzel.snd.plotting")
-        with config as _:
-            # this calls addKey
-            _('backend', 'matplotlib', choices={'matlotlib'})
-            _('spectrogram.colormap', 'inferno', choices=_cmaps)
-            _('samplesplot.figsize', (24, 4))
-            _('spectrogram.figsize', (24, 8))
-            _('spectrogram.maxfreq', 12000,
-              doc="Highest frequency in a spectrogram")
-            _('spectrogram.window', 'hamming', choices={'hamming', 'hanning'})
+        with ConfigDict("maelzel.snd.plotting") as conf
+            conf.addKey('backend', 'matplotlib', choices={'matlotlib'})
+            conf.addKey('spectrogram.colormap', 'inferno', choices=_cmaps)
+            conf.addKey('samplesplot.figsize', (24, 4))
+            conf.addKey('spectrogram.figsize', (24, 8))
+            conf.addKey('spectrogram.maxfreq', 12000,
+                        doc="Highest frequency in a spectrogram")
 
         # The same effect can be achieved by passing the default/validator/doc
 
@@ -1059,7 +1062,8 @@ class ConfigDict(CheckedDict):
                  persistent=False,
                  load=True,
                  fmt='yaml',
-                 sortKeys=False) -> None:
+                 sortKeys=False,
+                 description='') -> None:
 
         self._name = ''
         self._base = ''
@@ -1067,6 +1071,7 @@ class ConfigDict(CheckedDict):
         self._configPath = None
         self._callbacks = []
         self._loaded = False
+        self.description = description
 
         if name:
             name = _normalizeName(name)
@@ -1082,7 +1087,7 @@ class ConfigDict(CheckedDict):
             self._registry[name] = self
             self._name = name
         else:
-            assert not persistent, f"A persistent dict needs a name"
+            assert not persistent, "A persistent dict needs a name"
             load = False
 
         self.fmt = fmt
@@ -1287,7 +1292,8 @@ class ConfigDict(CheckedDict):
             rows.append((key, str(value), infostr, doc if doc else ""))
         return rows
 
-    def generateRstDocumentation(self) -> str:
+    def generateRstDocumentation(self, maxwidth=80, withName=True, withDescription=True
+                                 ) -> str:
         """
         Generate ReST documentation for this dictionary
 
@@ -1296,6 +1302,14 @@ class ConfigDict(CheckedDict):
         """
         lines = []
         _ = lines.append
+
+        if withName and self.name:
+            _(self.name)
+            _("-" * len(self.name))
+            _('')
+        if withDescription and self.description:
+            _(textwrap.wrap(self.description, width=maxwidth))
+            _('\n------------------------\n')
         for key, value in self.default.items():
             _(f"{key}:")
             _(f"    | Default: **{value}**  -- `{self.getTypestr(key)}`")
@@ -1392,7 +1406,12 @@ class ConfigDict(CheckedDict):
         return header + tabulate.tabulate(rows)
 
     def getPath(self) -> str:
-        """ Return the path this dict will be saved to """
+        """ Return the path this dict will be saved to
+
+        If the dict has no name, an empty string is returned
+        """
+        if not self._name:
+            return ''
         if not self._configPath:
             self._configPath = configPathFromName(self._name, self.fmt)
         return self._configPath
@@ -1454,9 +1473,39 @@ class ConfigDict(CheckedDict):
             if key not in self:
                 self[key] = other[key]
 
-    def load(self, configpath:str=None) -> None:
+    def load(self, configpath: str = None) -> None:
         """
         Read the saved config, update self.
+
+        If there is no saved version or the dict has no name, then
+        the dict is set to the default defined at construction.
+
+        When defining the default iteratively (via addKey), calling
+        load marks the end of the definition: after calling load no other
+        keys can be added to this dict.
+
+        Args:
+            configpath: an custom path to load a saved version from. Otherwise
+                it is loaded from :meth:`ConfigDict.getPath` (this is only
+                possible if the dict has a name, since the resolved path
+                is determined from the name)
+
+        Example
+        -------
+
+        .. code::
+
+            from configdict import ConfigDict
+            conf = ConfigDict('foo.bar')
+            conf.addKey('key1', 'value1', ...)
+            conf.addKey('key2', 'value2', ...)
+            ...
+            # When finished defining keys, call .load
+            conf.load()
+
+            # Now the dict can be used
+
+        When
         """
         assert self.default
         if len(self) == 0:
@@ -1464,8 +1513,8 @@ class ConfigDict(CheckedDict):
             super().update(self.default)
         if configpath is None:
             configpath = self.getPath()
-        if not os.path.exists(configpath):
-            logger.debug("Using default config")
+        if not configpath or not os.path.exists(configpath):
+            logger.debug(f"No saved version found for dict '{self.name}', using default")
             super().update(self.default)
             return
         logger.debug(f"Reading config from disk: {configpath}")
