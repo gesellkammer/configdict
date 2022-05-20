@@ -89,9 +89,9 @@ import tempfile
 from types import FunctionType
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (Optional as Opt, Any, Tuple, Dict, List, Union, Callable, TypeVar, Set)
+    from typing import Optional, Any, Tuple, Dict, List, Union, Callable, TypeVar, Set
     validatefunc_t = Callable[[dict, str, Any], bool]
-    T = TypeVar("T")
+    T = TypeVar("T", bound="CheckedDict")
 
 __all__ = ("CheckedDict",
            "ConfigDict",
@@ -156,11 +156,11 @@ def _asChoiceStr(x) -> str:
     return f"'{x}'" if isinstance(x, str) else str(x)
 
 
-def _yamlComment(doc: Opt[str],
+def _yamlComment(doc: Optional[str],
                  default: Any,
-                 choices: Opt[set],
-                 valuerange: Opt[Tuple[float, float]],
-                 valuetype: Opt[str],
+                 choices: Optional[set],
+                 valuerange: Optional[Tuple[float, float]],
+                 valuetype: Optional[str],
                  maxwidth=80) -> str:
     """
     This generated the yaml comments used when saving the config to yaml
@@ -485,12 +485,12 @@ class CheckedDict(dict):
     def _changed(self) -> None:
         self._allowedkeys = set(self.default.keys())
 
-    def copy(self) -> CheckedDict:
+    def copy(self: T) -> T:
         """
-        Create a copy of this CheckedDict
+        Create a copy of this dict
         """
-        out = CheckedDict(default=self.default, validator=self._validator, docs=self._docs,
-                          precallback=self._precallback, callback=self._callback)
+        out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
+                             precallback=self._precallback, callback=self._callback)
         return out
 
     def clone(self: T, updates: dict = None, **kws) -> T:
@@ -674,7 +674,7 @@ class CheckedDict(dict):
                 return errormsg
         return ""
 
-    def getValidateFunc(self, key:str) -> Opt[validatefunc_t]:
+    def getValidateFunc(self, key:str) -> Optional[validatefunc_t]:
         """
         Returns a function to validate a value for ``key``
 
@@ -691,7 +691,7 @@ class CheckedDict(dict):
         assert func is None or callable(func)
         return func
 
-    def getChoices(self, key: str) -> Opt[list]:
+    def getChoices(self, key: str) -> Optional[list]:
         """
         Return a seq. of possible values for key ``k`` or ``None``
         """
@@ -708,12 +708,12 @@ class CheckedDict(dict):
             return realchoices
         return choices
 
-    def getDoc(self, key: str) -> Opt[str]:
+    def getDoc(self, key: str) -> Optional[str]:
         """ Get documentation for key (if present) """
         if self._docs:
             return self._docs.get(key)
 
-    def checkValue(self, key: str, value) -> Opt[str]:
+    def checkValue(self, key: str, value) -> Optional[str]:
         """
         Check if value is valid for key
 
@@ -759,7 +759,7 @@ class CheckedDict(dict):
             return f"Value for key {key} should be within range {r}, got {value}"
         return None
 
-    def getRange(self, key: str) -> Opt[tuple]:
+    def getRange(self, key: str) -> Optional[tuple]:
         """
         Returns the valid range for this key's value, if specified.
 
@@ -911,7 +911,7 @@ class CheckedDict(dict):
         return "".join(parts)
 
 
-def _loadJson(path:str) -> Opt[dict]:
+def _loadJson(path:str) -> Optional[dict]:
     try:
         return json.load(open(path))
     except json.JSONDecodeError:
@@ -920,7 +920,7 @@ def _loadJson(path:str) -> Opt[dict]:
         logger.debug("Using default as fallback")
 
 
-def _loadYaml(path: str, fail=False) -> Opt[dict]:
+def _loadYaml(path: str, fail=False) -> Optional[dict]:
     try:
         with open(path) as f:
             return yaml.load(f, Loader=yaml.SafeLoader)
@@ -931,7 +931,7 @@ def _loadYaml(path: str, fail=False) -> Opt[dict]:
             raise e
 
 
-def _loadDict(path: str) -> Opt[dict]:
+def _loadDict(path: str) -> Optional[dict]:
     fmt = os.path.splitext(path)[1]
     if fmt == ".json":
         return _loadJson(path)
@@ -1045,6 +1045,14 @@ class ConfigDict(CheckedDict):
                          docs=docs)
         # no need to call .load in this case
 
+        # Using inheritance
+        class MyConfig(ConfigDict):
+            def __init__(self):
+                super().__init__(name="myconfig", default=default, validator=validator,
+                                 docs=docs)
+
+        cfg = MyConfig()
+
     """
 
     _registry: Dict[str, ConfigDict] = {}
@@ -1106,7 +1114,7 @@ class ConfigDict(CheckedDict):
                 self.load()
 
     @property
-    def name(self) -> Opt[str]:
+    def name(self) -> Optional[str]:
         """
         The name of this ConfigDict. The name determines where it is saved
         """
@@ -1170,9 +1178,9 @@ class ConfigDict(CheckedDict):
         if persistent:
             self.save()
 
-    def copy(self) -> ConfigDict:
+    def copy(self: T) -> T:
         """
-        Create a copy if this ConfigDict.
+        Create a copy if this dict.
 
         The copy will be unnamed and not persistent. Use :meth:`ConfigDict.clone`
         to create a named/persistent clone of this dict.
@@ -1188,9 +1196,9 @@ class ConfigDict(CheckedDict):
         """
         return self.default == other.default
         
-    def clone(self, name: str = None, persistent=False, cloneCallbacks=True,
+    def clone(self: T, name: str = None, persistent=False, cloneCallbacks=True,
               updates:dict=None, **kws
-              ) -> ConfigDict:
+              ) -> T:
         """
         Create a clone of this dict
 
@@ -1207,8 +1215,8 @@ class ConfigDict(CheckedDict):
         """
         if name is None:
             name = self._name
-        out = ConfigDict(default=self.default, validator=self._validator, docs=self._docs,
-                         persistent=persistent, load=False, name=name)
+        out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
+                             persistent=persistent, load=False, name=name)
         out.update(self)
         if updates:
             out.update(updates)
@@ -1584,7 +1592,7 @@ def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, 
     return out
 
 
-def _parseName(name: str) -> Tuple[str, Opt[str]]:
+def _parseName(name: str) -> Tuple[str, Optional[str]]:
     """
     Returns (configname, base) (which can be None)
     """
@@ -1626,7 +1634,7 @@ def _checkName(name):
             " It should contain letters, numbers and any of '.', '_', ':'")
 
 
-def getConfig(name: str) -> Opt[ConfigDict]:
+def getConfig(name: str) -> Optional[ConfigDict]:
     """
     Retrieve a previously created ConfigDict.
 
