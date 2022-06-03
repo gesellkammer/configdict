@@ -138,7 +138,7 @@ def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
     ['e1', 'e2', 'e10', 'f']
 
     >>> seq = [(2, "e10"), (10, "e2")]
-    >>> sort_natural(seq, key=lambda tup:tup[1])
+    >>> sortNatural(seq, key=lambda tup:tup[1])
     [(10, 'e2'), (2, 'e10')]
     """
     def convert(text: str):
@@ -220,6 +220,8 @@ def _typeName(t: Union[str, type, Tuple[type,...]]) -> str:
     else:
         raise TypeError(f"Expected a str, type or tuple of types, got {t}")
 
+def _asRstLinkKey(key: str) -> str:
+    return key.replace(".", "_").replace(" ", "").lower()
 
 def _asYaml(d: Dict[str, Any],
             doc: Dict[str, str],
@@ -898,7 +900,7 @@ class CheckedDict(dict):
             f.write(yamlstr)
 
     def _repr_html_(self) -> str:
-        parts = ['<div><h4>CheckedDict</h4>']
+        parts = [f'<div><h4>{type(self).__name__}</h4>']
         parts.append("<br>")
         rows = []
         for k in self.keys():
@@ -1157,23 +1159,33 @@ class ConfigDict(CheckedDict):
         """
         Update this dict with the values in d.
 
+        .. note::
+
+            keywords have priority over d (similar to builtin dict)
+
         Args:
             d: values in this dictionary will overwrite values in self.
                 Keys not present in self will raise an exception
             **kws: any key:value here will also be used to update self
 
         """
-        if not d or kws:
+        if not d and not kws:
             return
-        kws.update(d)
-        errormsg = self.checkDict(kws)
+        if d:
+            d0 = d.copy()
+            d0.update(kws)
+            d = d0
+        else:
+            d = kws
+        errormsg = self.checkDict(d)
         if errormsg:
             logger.error(f"ConfigDict: {errormsg}")
             logger.error(f"Reset the dict to a default by removing the"
                          f" file '{self.getPath()}'")
             raise ValueError(f"dict is invalid: {errormsg}")
         self._persistent, persistent = False, self._persistent
-        super().update(kws)
+        print("updating: ", d)
+        super().update(d)
         self._persistent = persistent
         if persistent:
             self.save()
@@ -1256,11 +1268,13 @@ class ConfigDict(CheckedDict):
 
     def save(self, path:str=None, header:str='') -> None:
         """
-        Save this dict to `path` or to its persistent path
+        Save this to its persistent path (or a custom path)
 
-        A persistent config doesn't need to be saved by the user,
-        it is saved whenever it is modified. This method can be
-        used to explicitely save a config
+        If this config was created with the `persistent` flag on,
+        it does not need to be saved manually, it is saved whenever it
+        is modified. However if it was created with ``persistent=False``
+        then this method can be used to write this dict so it will be
+        loaded in a future session
 
         Args:
             path (str): the path to save the config. If None and this
@@ -1300,7 +1314,8 @@ class ConfigDict(CheckedDict):
             rows.append((key, str(value), infostr, doc if doc else ""))
         return rows
 
-    def generateRstDocumentation(self, maxwidth=80, withName=True, withDescription=True
+    def generateRstDocumentation(self, maxwidth=80, withName=True, withDescription=True,
+                                 withLink=True, linkPrefix=''
                                  ) -> str:
         """
         Generate ReST documentation for this dictionary
@@ -1319,10 +1334,16 @@ class ConfigDict(CheckedDict):
             _(textwrap.wrap(self.description, width=maxwidth))
             _('\n------------------------\n')
         for key, value in self.default.items():
+            if withLink:
+                linkkey = _asRstLinkKey(key)
+                if linkPrefix:
+                    linkkey = linkPrefix + linkkey
+                _(f".. _{linkkey}:\n")
             _(f"{key}:")
             _(f"    | Default: **{value}**  -- `{self.getTypestr(key)}`")
             if choices := self.getChoices(key):
-                choicestr = ', '.join(map(str, choices))
+                choices = sortNatural([str(_) for _ in choices])
+                choicestr = ', '.join(choices)
                 _(f"    | Choices: ``{choicestr}``")
             if valuerange := self.getRange(key):
                 a, b = valuerange
@@ -1349,8 +1370,7 @@ class ConfigDict(CheckedDict):
         info = []
         choices = self.getChoices(k)
         if choices:
-            choices = list(str(choice) for choice in choices)
-            choices = sortNatural(choices)
+            choices = sortNatural([str(choice) for choice in choices])
             choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
             info.append(choicestr)
         elif (keyrange := self.getRange(k)) is not None:
@@ -1362,7 +1382,7 @@ class ConfigDict(CheckedDict):
         return" | ".join(info) if info else ""
 
     def _repr_html_(self) -> str:
-        parts = [f'<div><h4>ConfigDict: <strong>{self.name}</strong></h4>']
+        parts = [f'<div><h4>{type(self).__name__}: <strong>{self.name}</strong></h4>']
         if self.persistent:
             parts.append(f'persistent (<code>"{self.getPath()}"</code>)')
         parts.append("<br>")
