@@ -1184,7 +1184,6 @@ class ConfigDict(CheckedDict):
                          f" file '{self.getPath()}'")
             raise ValueError(f"dict is invalid: {errormsg}")
         self._persistent, persistent = False, self._persistent
-        print("updating: ", d)
         super().update(d)
         self._persistent = persistent
         if persistent:
@@ -1340,6 +1339,8 @@ class ConfigDict(CheckedDict):
                     linkkey = linkPrefix + linkkey
                 _(f".. _{linkkey}:\n")
             _(f"{key}:")
+            if isinstance(value, str) and not value:
+                value = "''"
             _(f"    | Default: **{value}**  -- `{self.getTypestr(key)}`")
             if choices := self.getChoices(key):
                 choices = sortNatural([str(_) for _ in choices])
@@ -1431,7 +1432,7 @@ class ConfigDict(CheckedDict):
         import tabulate
         header = f"Config: {self._name}\n"
         rows = self._repr_rows()
-        return header + tabulate.tabulate(rows)
+        return header + tabulate.tabulate(rows) + '\n'
 
     def getPath(self) -> str:
         """ Return the path this dict will be saved to
