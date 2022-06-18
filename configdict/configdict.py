@@ -1341,7 +1341,7 @@ class ConfigDict(CheckedDict):
             _(f"{key}:")
             if isinstance(value, str) and not value:
                 value = "''"
-            _(f"    | Default: **{value}**  -- `{self.getTypestr(key)}`")
+            _(f"    | Default: **{value}**  -- ``{self.getTypestr(key)}``")
             if choices := self.getChoices(key):
                 choices = sortNatural([str(_) for _ in choices])
                 choicestr = ', '.join(choices)
