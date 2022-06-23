@@ -598,7 +598,7 @@ class CheckedDict(dict):
         if range:
             validator[f"{key}::range"] = range
         if validatefunc:
-            assert callable(validatefunc)
+            assert callable(validatefunc), f"Validate function ({validatefunc}) is not callable for key: {key}"
             validator[key] = validatefunc
         if doc:
             self._docs[key] = doc
@@ -690,7 +690,7 @@ class CheckedDict(dict):
 
         """
         func = self._validator.get(key, None)
-        assert func is None or callable(func)
+        assert func is None or callable(func), f"Validate func should be callable for key {key}, got {func}"
         return func
 
     def getChoices(self, key: str) -> Optional[list]:
@@ -1287,7 +1287,7 @@ class ConfigDict(CheckedDict):
             fmt = self.fmt
         else:
             fmt = os.path.splitext(path)[1][1:]
-            assert fmt in {'json', 'yaml', 'csv'}
+            assert fmt in {'json', 'yaml', 'csv'}, f"Invalid format {fmt}, expected one of 'yaml', 'json', 'csv'"
 
         logger.debug(f"Saving config to {path}")
         if fmt is None:
