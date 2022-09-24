@@ -80,6 +80,8 @@ from __future__ import annotations
 import appdirs
 import os
 import json
+
+import emlib.textlib
 import yaml
 import logging
 import sys
@@ -154,6 +156,13 @@ def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
 
 def _asChoiceStr(x) -> str:
     return f"'{x}'" if isinstance(x, str) else str(x)
+
+
+_keyNormalizer = emlib.textlib.makeReplacer({'.': '', '_': '', '-': ''})
+
+
+def _normalizeKey(key: str) -> str:
+    return _keyNormalizer(key.lower())
 
 
 def _yamlComment(doc: Optional[str],
@@ -394,7 +403,7 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
-def _bestMatches(s: str, options: List[str], limit:int, minpercent:int, lengthMatchPercent=None) -> List[str]:
+def _bestMatches(s: str, options: list[str], limit:int, minpercent:int, lengthMatchPercent=None) -> List[str]:
     from fuzzywuzzy import process
     possibleChoices = process.extract(s, options, limit=limit)
     if lengthMatchPercent:
@@ -410,6 +419,18 @@ def _bestMatches(s: str, options: List[str], limit:int, minpercent:int, lengthMa
 
 
 INVALID = object()
+
+
+def _forceHash(values) -> int:
+    hashes = []
+    for value in values:
+        if isinstance(value, list):
+            hashes.append(hash(tuple(value)))
+        elif isinstance(value, dict):
+            raise ValueError(f"Dicts cannot be forced to have a hash ({value}")
+        else:
+            hashes.append(hash(value))
+    return hash(tuple(hashes))
 
 
 class CheckedDict(dict):
@@ -476,12 +497,20 @@ class CheckedDict(dict):
         self._precallback = precallback
         self._callback = callback
         self._building = False
-        if self.default and autoload:
-            self.load()
+        self._normalizedKeys: dict[str, str] = {}
+
+        if self.default:
+            if autoload:
+                self.load()
+            self._normalizedKeys = {_normalizeKey(k): k for k in self.default.keys()}
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
-        valueshash = hash(tuple(self.values()))
+        try:
+            valueshash = hash(tuple(self.values()))
+        except:
+            logger.debug(f"Some values are unhashable, using unsafe hash ({self.values()}")
+            valueshash = id(self)
         return hash((len(self), keyshash, valueshash, hash(self._precallback), hash(self._callback)))
 
     def _changed(self) -> None:
@@ -525,7 +554,7 @@ class CheckedDict(dict):
         """
         Create a version of this class with all values set to the default
         """
-        return self.clone(updates=self)
+        return self.clone(updates=self.default)
 
     def diff(self) -> dict:
         """
@@ -608,16 +637,17 @@ class CheckedDict(dict):
             if len(self._allowedkeys) < 8:
                 raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
             else:
-                mostlikely = _bestMatches(key, self._allowedkeys, 16, minpercent=60)
+                mostlikely = _bestMatches(key, list(self._allowedkeys), 16, minpercent=60)
                 msg = f"Unknown key {key}. Did you mean {', '.join(mostlikely)}?"
                 raise KeyError(msg)
 
         oldvalue = self.get(key)
         if oldvalue is not None and oldvalue == value:
             return
-        errormsg = self.checkValue(key, value)
-        if errormsg:
-            raise ValueError(errormsg)
+        if self._validator:
+            errormsg = self.checkValue(key, value)
+            if errormsg:
+                raise ValueError(errormsg)
         if self._precallback:
             newvalue = self._precallback(self, key, oldvalue, value)
             if newvalue is not INVALID:
@@ -670,10 +700,11 @@ class CheckedDict(dict):
         invalidkeys = [key for key in d if key not in self.default]
         if invalidkeys:
             return f"Some keys are not valid: {invalidkeys}"
-        for k, v in d.items():
-            errormsg = self.checkValue(k, v)
-            if errormsg:
-                return errormsg
+        if self._validator:
+            for k, v in d.items():
+                errormsg = self.checkValue(k, v)
+                if errormsg:
+                    return errormsg
         return ""
 
     def getValidateFunc(self, key:str) -> Optional[validatefunc_t]:
@@ -719,6 +750,8 @@ class CheckedDict(dict):
         """
         Check if value is valid for key
 
+        This is only possible if a validator was set
+
         Args:
             key: the key to check
             value: the value to check according to the contraints defined
@@ -737,14 +770,19 @@ class CheckedDict(dict):
             if error:
                 print(error)
         """
+        if not self._validator:
+            logger.debug(f"Validator not set, cannot check value {value} (key '{key}')")
+            return
         choices = self.getChoices(key)
         if choices is not None and value not in choices:
             return f"key {key} should be one of {choices}, got {value}"
         func = self.getValidateFunc(key)
         if func:
-            ok = func(self, key, value)
-            if not ok:
+            error = func(self, key, value)
+            if not error:
                 return f"{value} is not valid for key {key}"
+            elif isinstance(error, str):
+                return f"{value} is not valid for key {key}: {error}"
         t = self.getType(key)
         if t == float:
             if not _isfloaty(value):
@@ -753,8 +791,6 @@ class CheckedDict(dict):
             return f"Expected str or bytes for key {key}, got {type(value).__name__}"
         elif not isinstance(value, t):
             return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
-        elif isinstance(value, tuple):
-            return "Tuples are not allowed as values. Use a list instead"
 
         r = self.getRange(key)
         if r and not (r[0] <= value <= r[1]):
@@ -833,6 +869,20 @@ class CheckedDict(dict):
         self.clear()
         self.update(self.default)
 
+
+    def _normalizeDict(self, d: dict) -> dict:
+        out = {}
+        keys = self.keys()
+        for k, v in d.items():
+            if k in keys:
+                out[k] = v
+            elif k2:=self._normalizedKeys.get(_normalizeKey(k)):
+                out[k2] = v
+            else:
+                raise KeyError(f"Unsupported key: {k}")
+        return out
+
+
     def update(self, d: dict=None, **kws) -> None:
         """
         Update ths dict with `d` or any key:value pair passed as keyword
@@ -843,6 +893,12 @@ class CheckedDict(dict):
                 raise ValueError(f"dict is invalid: {errormsg}")
             super().update(d)
         if kws:
+            for k, v in kws.items():
+                if k not in self._allowedkeys:
+                    k2 = self._normalizedKeys.get(_normalizeKey(k))
+                    if k2:
+                        del kws[k]
+                        kws[k2] = v
             errormsg = self.checkDict(kws)
             if errormsg:
                 raise ValueError(f"invalid keywords: {errormsg}")
@@ -1081,6 +1137,7 @@ class ConfigDict(CheckedDict):
         self._configPath = None
         self._callbacks = []
         self._loaded = False
+        self.bypassCallbacks = False
         self.description = description
 
         if name:
@@ -1149,6 +1206,8 @@ class ConfigDict(CheckedDict):
         own callback used to dispatch to any registered callbacks and save
         self after any change
         """
+        if self.bypassCallbacks:
+            return
         for pattern, func in self._callbacks:
             if re.match(pattern, key):
                 func(self, key, value)
@@ -1171,20 +1230,8 @@ class ConfigDict(CheckedDict):
         """
         if not d and not kws:
             return
-        if d:
-            d0 = d.copy()
-            d0.update(kws)
-            d = d0
-        else:
-            d = kws
-        errormsg = self.checkDict(d)
-        if errormsg:
-            logger.error(f"ConfigDict: {errormsg}")
-            logger.error(f"Reset the dict to a default by removing the"
-                         f" file '{self.getPath()}'")
-            raise ValueError(f"dict is invalid: {errormsg}")
         self._persistent, persistent = False, self._persistent
-        super().update(d)
+        CheckedDict.update(self, d, **kws)
         self._persistent = persistent
         if persistent:
             self.save()
@@ -1199,7 +1246,7 @@ class ConfigDict(CheckedDict):
         Returns:
             the copy of this dict
         """
-        return self.clone(name='', persistent=False, cloneCallbacks=False)
+        return self.clone()
 
     def isCongruentWith(self, other: ConfigDict) -> bool:
         """
@@ -1260,10 +1307,11 @@ class ConfigDict(CheckedDict):
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-    def reset(self) -> None:
+    def reset(self, save=True) -> None:
         """ Reset this dict to its default """
         super().reset()
-        self.save()
+        if save:
+            self.save()
 
     def save(self, path:str=None, header:str='') -> None:
         """
@@ -1570,16 +1618,16 @@ class ConfigDict(CheckedDict):
         # * if a key is present only in default, it is added
 
         # check invalid values
-        keysWithInvalidValues = []
-        for k, v in confdict.items():
-            errormsg = self.checkValue(k, v)
-            if errormsg:
-                logger.error(errormsg)
-                logger.error(f"    Using default: {self.default[k]}")
-                keysWithInvalidValues.append(k)
-        for k in keysWithInvalidValues:
-            del confdict[k]
-
+        if self._validator:
+            keysWithInvalidValues = []
+            for k, v in confdict.items():
+                errormsg = self.checkValue(k, v)
+                if errormsg:
+                    logger.error(errormsg)
+                    logger.error(f"    Using default: {self.default[k]}")
+                    keysWithInvalidValues.append(k)
+            for k in keysWithInvalidValues:
+                del confdict[k]
         super().update(confdict)
         self._loaded = True
         if needsSave and self.persistent:
