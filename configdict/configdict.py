@@ -1623,6 +1623,7 @@ class ConfigDict(CheckedDict):
             for k, v in confdict.items():
                 errormsg = self.checkValue(k, v)
                 if errormsg:
+                    logger.error(f"Error while loading config {self.name} (path: {configpath})")
                     logger.error(errormsg)
                     logger.error(f"    Using default: {self.default[k]}")
                     keysWithInvalidValues.append(k)
