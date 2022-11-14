@@ -1428,6 +1428,9 @@ class ConfigDict(CheckedDict):
         else:
             typestr = self.getTypestr(k)
             info.append("type: " + typestr)
+
+        if self[k] != self.default[k]:
+            info.append(f'default: {self.default[k]}')
         return" | ".join(info) if info else ""
 
     def _repr_html_(self) -> str:
@@ -1438,7 +1441,12 @@ class ConfigDict(CheckedDict):
         rows = []
         for k in self.keys():
             v = self[k]
-            rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
+            descr = self.getDoc(k)
+            if v == self.default[k]:
+                strv = str(v)
+            else:
+                strv = f'* {v}'
+            rows.append((k, strv, self._infoStr(k), descr))
         table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
                            rowstyles=('strong', 'code', None, None))
         parts.append(table)
