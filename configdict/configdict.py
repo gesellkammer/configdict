@@ -88,10 +88,11 @@ import sys
 import re
 import textwrap
 import tempfile
+from functools import cache
 from types import FunctionType
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Optional, Any, Tuple, Dict, List, Union, Callable, TypeVar, Set
+    from typing import Optional, Any, Union, Callable, TypeVar, Set
     validatefunc_t = Callable[[dict, str, Any], bool]
     T = TypeVar("T", bound="CheckedDict")
 
@@ -161,6 +162,7 @@ def _asChoiceStr(x) -> str:
 _keyNormalizer = emlib.textlib.makeReplacer({'.': '', '_': '', '-': ''})
 
 
+@cache
 def _normalizeKey(key: str) -> str:
     return _keyNormalizer(key.lower())
 
@@ -168,7 +170,7 @@ def _normalizeKey(key: str) -> str:
 def _yamlComment(doc: Optional[str],
                  default: Any,
                  choices: Optional[set],
-                 valuerange: Optional[Tuple[float, float]],
+                 valuerange: Optional[tuple[float, float]],
                  valuetype: Optional[str],
                  maxwidth=80) -> str:
     """
@@ -219,7 +221,7 @@ def _yamlValue(value) -> str:
     return s.replace("\n...\n", "")
 
 
-def _typeName(t: Union[str, type, Tuple[type,...]]) -> str:
+def _typeName(t: Union[str, type, tuple[type,...]]) -> str:
     if isinstance(t, str):
         return t
     elif isinstance(t, type):
@@ -232,10 +234,10 @@ def _typeName(t: Union[str, type, Tuple[type,...]]) -> str:
 def _asRstLinkKey(key: str) -> str:
     return key.replace(".", "_").replace(" ", "").lower()
 
-def _asYaml(d: Dict[str, Any],
-            doc: Dict[str, str],
-            default: Dict[str, Any],
-            validator: Dict[str, Any] = None,
+def _asYaml(d: dict[str, Any],
+            doc: dict[str, str],
+            default: dict[str, Any],
+            validator: dict[str, Any] = None,
             sortKeys=False
             ) -> str:
     lines = []
@@ -403,7 +405,7 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
-def _bestMatches(s: str, options: list[str], limit:int, minpercent:int, lengthMatchPercent=None) -> List[str]:
+def _bestMatches(s: str, options: list[str], limit:int, minpercent:int, lengthMatchPercent=None) -> list[str]:
     from fuzzywuzzy import process
     possibleChoices = process.extract(s, options, limit=limit)
     if lengthMatchPercent:
@@ -482,22 +484,22 @@ class CheckedDict(dict):
         checked = CheckedDict(default, validator=validator)
     """
     def __init__(self,
-                 default: Dict[str, Any] = None,
-                 validator: Dict[str, Any] = None,
-                 docs: Dict[str, str] = None,
+                 default: dict[str, Any] = None,
+                 validator: dict[str, Any] = None,
+                 docs: dict[str, str] = None,
                  callback: Callable[[str, Any], None] = None,
                  precallback=None,
                  autoload=True) -> None:
 
         self.default = default if default else {}
-        self._validator = _checkValidator(validator,
-                                          default) if validator else {}
+        self._validator = _checkValidator(validator, default) if validator else {}
         self._docs = docs if docs else {}
         self._allowedkeys = set(default.keys()) if default else set()
         self._precallback = precallback
         self._callback = callback
         self._building = False
         self._normalizedKeys: dict[str, str] = {}
+        self._bypass = False
 
         if self.default:
             if autoload:
@@ -521,7 +523,10 @@ class CheckedDict(dict):
         Create a copy of this dict
         """
         out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
-                             precallback=self._precallback, callback=self._callback)
+                             precallback=self._precallback, callback=self._callback, autoload=False)
+        out._bypass = True
+        out.update(self)
+        out._bypass = False
         return out
 
     def clone(self: T, updates: dict = None, **kws) -> T:
@@ -547,7 +552,8 @@ class CheckedDict(dict):
         out = self.copy()
         if updates:
             out.update(updates)
-        out.update(kws)
+        if kws:
+            out.update(kws)
         return out
 
     def makeDefault(self: T) -> T:
@@ -569,7 +575,7 @@ class CheckedDict(dict):
         return out
 
     def __call__(self, key: str, value: Any, type=None, choices=None,
-                 range: Tuple[Any, Any] = None, doc: str = '',
+                 range: tuple[Any, Any] = None, doc: str = '',
                  validatefunc: validatefunc_t = None) -> None:
         if not self._building:
             raise RuntimeError("Not inside a context manager context")
@@ -579,9 +585,9 @@ class CheckedDict(dict):
     def addKey(self,
                key: str,
                value: Any,
-               type: Union[type, Tuple[type,...]] = None,
-               choices: Union[Set, Tuple] = None,
-               range: Tuple[Any, Any] = None,
+               type: Union[type, tuple[type,...]] = None,
+               choices: Union[Set, tuple] = None,
+               range: tuple[Any, Any] = None,
                validatefunc: validatefunc_t = None,
                doc: str = None) -> None:
         """
@@ -633,6 +639,10 @@ class CheckedDict(dict):
             self._docs[key] = doc
 
     def __setitem__(self, key: str, value) -> None:
+        if self._bypass:
+            super().__setitem__(key, value)
+            return
+
         if key not in self._allowedkeys:
             if len(self._allowedkeys) < 8:
                 raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
@@ -817,7 +827,7 @@ class CheckedDict(dict):
             return None
         return self._validator.get(key+"::range", None)
 
-    def getType(self, key: str) -> Union[type, Tuple[type,...]]:
+    def getType(self, key: str) -> Union[type, tuple[type,...]]:
         """
         Returns the expected type for key's value
 
@@ -1113,7 +1123,7 @@ class ConfigDict(CheckedDict):
 
     """
 
-    _registry: Dict[str, ConfigDict] = {}
+    _registry: dict[str, ConfigDict] = {}
 
     _helpwidth: int = 58
     _infowidth: int = 58
@@ -1121,9 +1131,9 @@ class ConfigDict(CheckedDict):
 
     def __init__(self,
                  name: str,
-                 default: Dict[str, Any]=None,
-                 validator: Dict[str, Any] = None,
-                 docs: Dict[str, str] = None,
+                 default: dict[str, Any]=None,
+                 validator: dict[str, Any] = None,
+                 docs: dict[str, str] = None,
                  precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
                  persistent=False,
                  load=True,
@@ -1158,7 +1168,6 @@ class ConfigDict(CheckedDict):
             load = False
 
         self.fmt = fmt
-
         super().__init__(default=default,
                          validator=validator,
                          docs=docs,
@@ -1254,8 +1263,8 @@ class ConfigDict(CheckedDict):
         """
         return self.default == other.default
         
-    def clone(self: T, name: str = None, persistent=False, cloneCallbacks=True,
-              updates:dict=None, **kws
+    def clone(self: T, updates: dict = None, name: str = None, persistent=False, 
+              cloneCallbacks=True, **kws
               ) -> T:
         """
         Create a clone of this dict
@@ -1275,7 +1284,9 @@ class ConfigDict(CheckedDict):
             name = self._name
         out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
                              persistent=persistent, load=False, name=name)
-        out.update(self)
+        out._bypass = True
+        dict.update(out, self)
+        out._bypass = False
         if updates:
             out.update(updates)
         if kws:
@@ -1313,7 +1324,7 @@ class ConfigDict(CheckedDict):
         if save:
             self.save()
 
-    def save(self, path:str=None, header:str='') -> None:
+    def save(self, path: str = None, header:str='') -> None:
         """
         Save this to its persistent path (or a custom path)
 
@@ -1456,7 +1467,7 @@ class ConfigDict(CheckedDict):
     def _repr_pretty_(self, printer, cycle) -> str:
         return printer.text(str(self))
 
-    def _repr_rows(self) -> List[str]:
+    def _repr_rows(self) -> list[str]:
         try:
             termwidth = os.get_terminal_size()[0] - 6
         except OSError:
@@ -1545,9 +1556,11 @@ class ConfigDict(CheckedDict):
         if self.persistent:
             self.save()
             
-    def _updateWithDefault(self) -> None:
+    def _updateWithDefault(self, bypass=True) -> None:
         try:
-            super().update(self.default)
+            self._bypass = True
+            dict.update(self, self.default)
+            self._bypass = False
         except ValueError as e:
             errmsg = textwrap.indent(str(e), prefix="    ")
             raise ValueError(f"Could not load default dict, error:\n{errmsg}")
@@ -1650,7 +1663,7 @@ def _makeName(configname: str, base: str = None) -> str:
         return f".{configname}"
 
 
-def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, Any]:
+def _mergeDicts(readdict: dict[str, Any], default: dict[str, Any]) -> dict[str, Any]:
     """
     Merge readdict into default
     Args:
@@ -1670,7 +1683,7 @@ def _mergeDicts(readdict: Dict[str, Any], default: Dict[str, Any]) -> Dict[str, 
     return out
 
 
-def _parseName(name: str) -> Tuple[str, Optional[str]]:
+def _parseName(name: str) -> tuple[str, Optional[str]]:
     """
     Returns (configname, base) (which can be None)
     """
@@ -1734,7 +1747,7 @@ def getConfig(name: str) -> Optional[ConfigDict]:
     return ConfigDict._registry.get(name)
 
 
-def activeConfigs() -> Dict[str, ConfigDict]:
+def activeConfigs() -> dict[str, ConfigDict]:
     """
     Returns a dict of active configs
     """
