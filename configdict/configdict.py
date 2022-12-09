@@ -163,7 +163,7 @@ _keyNormalizer = emlib.textlib.makeReplacer({'.': '', '_': '', '-': ''})
 
 
 @cache
-def _normalizeKey(key: str) -> str:
+def normalizeKey(key: str) -> str:
     return _keyNormalizer(key.lower())
 
 
@@ -463,6 +463,8 @@ class CheckedDict(dict):
             the modification has been done.
         precallback: function ``(key, value) -> newvalue``. If given, a precallback intercepts
             any change and can modify the value or return INVALID to prevent the modification
+        strict: if False keys are case and punktuation insensitive, meaning that
+            a key like 'foo.barBaz' will also be matched by 'foo_bar_baz' or 'foo_barbaz'
 
     Example
     =======
@@ -489,7 +491,8 @@ class CheckedDict(dict):
                  docs: dict[str, str] = None,
                  callback: Callable[[str, Any], None] = None,
                  precallback=None,
-                 autoload=True) -> None:
+                 autoload=True,
+                 strict=True) -> None:
 
         self.default = default if default else {}
         self._validator = _checkValidator(validator, default) if validator else {}
@@ -504,7 +507,9 @@ class CheckedDict(dict):
         if self.default:
             if autoload:
                 self.load()
-            self._normalizedKeys = {_normalizeKey(k): k for k in self.default.keys()}
+            if not strict:
+                self._normalizedKeys = {normalizeKey(k): k for k in self.default.keys()}
+
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
@@ -517,6 +522,10 @@ class CheckedDict(dict):
 
     def _changed(self) -> None:
         self._allowedkeys = set(self.default.keys())
+
+    @staticmethod
+    def normalizeKey(key: str) -> str:
+        return normalizeKey(key)
 
     def copy(self: T) -> T:
         """
@@ -638,14 +647,24 @@ class CheckedDict(dict):
         if doc:
             self._docs[key] = doc
 
+    def __getitem__(self, key: str):
+        if (value := dict.get(self, key, _UNKNOWN)) is not _UNKNOWN:
+            return value
+
+        if self._normalizedKeys and (key2 := self._normalizedKeys.get(normalizeKey(key))):
+            return dict.__getitem__(self, key2)
+
+        raise KeyError(f"key '{key}' not known. Possible keys: {sorted(self.keys())}")
+
     def __setitem__(self, key: str, value) -> None:
+
         if self._bypass:
             super().__setitem__(key, value)
             return
 
         if key not in self._allowedkeys:
-            if len(self._allowedkeys) < 8:
-                raise KeyError(f"Unknown key: {key}. Valid keys: {self._allowedkeys}")
+            if self._normalizedKeys and (normkey := self._normalizedKeys.get(normalizeKey(key))):
+                key = normkey
             else:
                 mostlikely = _bestMatches(key, list(self._allowedkeys), 16, minpercent=60)
                 msg = f"Unknown key {key}. Did you mean {', '.join(mostlikely)}?"
@@ -886,7 +905,7 @@ class CheckedDict(dict):
         for k, v in d.items():
             if k in keys:
                 out[k] = v
-            elif k2:=self._normalizedKeys.get(_normalizeKey(k)):
+            elif k2:=self._normalizedKeys.get(normalizeKey(k)):
                 out[k2] = v
             else:
                 raise KeyError(f"Unsupported key: {k}")
@@ -904,8 +923,8 @@ class CheckedDict(dict):
             super().update(d)
         if kws:
             for k, v in kws.items():
-                if k not in self._allowedkeys:
-                    k2 = self._normalizedKeys.get(_normalizeKey(k))
+                if k not in self._allowedkeys and self._normalizedKeys:
+                    k2 = self._normalizedKeys.get(normalizeKey(k))
                     if k2:
                         del kws[k]
                         kws[k2] = v
@@ -1139,7 +1158,8 @@ class ConfigDict(CheckedDict):
                  load=True,
                  fmt='yaml',
                  sortKeys=False,
-                 description='') -> None:
+                 description='',
+                 strict=True) -> None:
 
         self._name = ''
         self._base = ''
