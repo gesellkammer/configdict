@@ -571,17 +571,20 @@ class CheckedDict(dict):
         """
         return self.clone(updates=self.default)
 
-    def diff(self) -> dict:
+    def diff(self, other: T | None = None) -> dict:
         """
-        Get a dict containing keys:values which differ from default
+        Get a dict containing keys:values which differ from the default or from another dict
+
+        Args:
+            other: if given, another dict which this is compared against
+
+        Returns:
+            a dict containing key: value pairs where self differs from other
         """
-        out = {}
-        default = self.default
-        for key, value in self.items():
-            valuedefault = default[key]
-            if value != valuedefault:
-                out[key] = value
-        return out
+        if other is None:
+            other = self.default
+        return {k: v for k, v in self.items()
+                if v != other.get(k, _UNKNOWN)}
 
     def __call__(self, key: str, value: Any, type=None, choices=None,
                  range: tuple[Any, Any] = None, doc: str = '',
@@ -1476,7 +1479,7 @@ class ConfigDict(CheckedDict):
             if v == self.default[k]:
                 strv = str(v)
             else:
-                strv = f'* {v}'
+                strv = f'<i><b>{v}</b></i>'
             rows.append((k, strv, self._infoStr(k), descr))
         table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
                            rowstyles=('strong', 'code', None, None))
