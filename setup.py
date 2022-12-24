@@ -5,7 +5,7 @@ version = (2, 5, 2)
 
 setup(
     name='configdict',
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     version=".".join(map(str, version)),
     description='A supercharged dict used as configuration',
     long_description=readme,
@@ -26,6 +26,5 @@ setup(
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 3.8'
     ],
 )
