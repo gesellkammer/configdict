@@ -81,7 +81,6 @@ import appdirs
 import os
 import json
 
-import emlib.textlib
 import yaml
 import logging
 import sys
@@ -159,7 +158,26 @@ def _asChoiceStr(x) -> str:
     return f"'{x}'" if isinstance(x, str) else str(x)
 
 
-_keyNormalizer = emlib.textlib.makeReplacer({'.': '', '_': '', '-': ''})
+def _makeReplacer(conditions: dict) -> Callable:
+    """
+    Create a function to replace many subtrings at once
+
+    Args:
+        conditions: a dictionary mapping a string to its replacement
+
+    Example::
+
+        >>> replacer = makeReplacer({"&":"&amp;", " ":"_", "(":"\\(", ")":"\\)"})
+        >>> replacer("foo & (bar)")
+        "foo_&amp;_\(bar\)"
+
+    """
+    rep = {re.escape(k): v for k, v in conditions.items()}
+    pattern = re.compile("|".join(rep.keys()))
+    return lambda txt: pattern.sub(lambda m: rep[re.escape(m.group(0))], txt)
+
+
+_keyNormalizer = _makeReplacer({'.': '', '_': '', '-': ''})
 
 
 @cache
