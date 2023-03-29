@@ -678,9 +678,8 @@ class CheckedDict(dict):
         raise KeyError(f"key '{key}' not known. Possible keys: {sorted(self.keys())}")
 
     def __setitem__(self, key: str, value) -> None:
-
         if self._bypass:
-            super().__setitem__(key, value)
+            dict.__setitem__(key, value)
             return
 
         if key not in self._allowedkeys:
@@ -997,8 +996,10 @@ class CheckedDict(dict):
             _waitForClick(title=self.name)
         self.load(configfile)
 
-    def _saveAsYaml(self, path:str, header:str='', sortKeys=False) -> None:
+    def _saveAsYaml(self, path: str, header:str='', sortKeys=False) -> None:
         yamlstr = self.asYaml(sortKeys=sortKeys)
+        folder = os.path.split(path)[0]
+        os.makedirs(folder, exist_ok=True)
         with open(path, "w") as f:
             if header:
                 f.write(header)
