@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "configdict"
+version = "2.6.1"
+description = "A supercharged dict used as configuration"
+authors = [
+  { name = "Eduardo Moguillansky", email = "eduardo.moguillansky@gmail.com" },
+]
+license = { file = "LICENSE.md" }
+readme = "README.rst"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.9"
+
+dependencies = [
+	"setuptools",
+    "appdirs",
+    "PyYAML",
+    "watchdog",
+    "fuzzywuzzy"
+]
+
+[tool.setuptools]
+packages = ["configdict"]
+
+
+[tool.setuptools.package-data]
+sndfileio = ["py.typed"]
+
+[project.urls]
+"Homepage" = "https://github.com/gesellkammer/configdict"

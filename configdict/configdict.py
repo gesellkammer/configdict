@@ -344,6 +344,9 @@ def _openInStandardApp(path: str) -> None:
     """
     import subprocess
     platform = sys.platform
+    if not os.path.exists(path):
+        raise RuntimeError(f"Trying to open '{path}', but file does not exist")
+
     if platform == 'linux':
         subprocess.call(["xdg-open", path])
     elif platform == "win32":
@@ -503,6 +506,7 @@ class CheckedDict(dict):
 
         checked = CheckedDict(default, validator=validator)
     """
+
     def __init__(self,
                  default: dict[str, Any] = None,
                  validator: dict[str, Any] = None,
@@ -527,7 +531,6 @@ class CheckedDict(dict):
                 self.load()
             if not strict:
                 self._normalizedKeys = {normalizeKey(k): k for k in self.default.keys()}
-
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
@@ -918,7 +921,6 @@ class CheckedDict(dict):
         self.clear()
         self.update(self.default)
 
-
     def _normalizeDict(self, d: dict) -> dict:
         out = {}
         keys = self.keys()
@@ -930,7 +932,6 @@ class CheckedDict(dict):
             else:
                 raise KeyError(f"Unsupported key: {k}")
         return out
-
 
     def update(self, d: dict=None, **kws) -> None:
         """
@@ -996,7 +997,7 @@ class CheckedDict(dict):
             _waitForClick(title=self.name)
         self.load(configfile)
 
-    def _saveAsYaml(self, path: str, header:str='', sortKeys=False) -> None:
+    def _saveAsYaml(self, path: str, header: str = '', sortKeys=False) -> None:
         yamlstr = self.asYaml(sortKeys=sortKeys)
         folder = os.path.split(path)[0]
         os.makedirs(folder, exist_ok=True)
@@ -1005,7 +1006,9 @@ class CheckedDict(dict):
                 f.write(header)
                 f.write("\n")
             f.write(yamlstr)
-
+        if not os.path.exists(path):
+            raise RuntimeError(f"Could not save config to file '{path}', file not found")
+    
     def _repr_html_(self) -> str:
         parts = [f'<div><h4>{type(self).__name__}</h4>']
         parts.append("<br>")
@@ -1383,24 +1386,26 @@ class ConfigDict(CheckedDict):
             header: if given, this string is written prior to the dict, as
                 a comment. This is only supported when saving to yaml
         """
-        if path is None:
+        if not path:
             path = self.getPath()
             fmt = self.fmt
         else:
             fmt = os.path.splitext(path)[1][1:]
             assert fmt in {'json', 'yaml', 'csv'}, f"Invalid format {fmt}, expected one of 'yaml', 'json', 'csv'"
-
         logger.debug(f"Saving config to {path}")
         if fmt is None:
             fmt = self.fmt
         if fmt == 'json':
             with open(path, "w") as f:
                 json.dump(self, f, indent=True, sort_keys=True)
-        elif fmt == 'yaml':
+        elif fmt == 'yaml' or fmt == 'yml':
             self._saveAsYaml(path, header=header, sortKeys=self.sortKeys)
         elif fmt == 'csv':
             csvstr = self.asCsv()
             open(path, "w").write(csvstr)
+        else:
+            raise ValueError(f"Extention '{fmt}' not suported. It should be one of .yaml, .yml, .json, .csv")
+        assert os.path.exists(path), f"Saved file to '{path}', but file does not exist"
 
     def dump(self):
         """ Dump this config to stdout """
@@ -1578,14 +1583,15 @@ class ConfigDict(CheckedDict):
                 mode might in fact exit right away from the perspective of the
                 subprocess which launched them
         """
-        configfile = tempfile.mktemp(suffix=".yaml")
         header = _editHeaderWatch if waitOnModified else _editHeaderPopup
-        self.save(configfile, header=header)
+        configfile = tempfile.mktemp(suffix=".yaml")
+        self._saveAsYaml(configfile, header=header)
+        assert os.path.exists(configfile)
         _openInEditor(configfile)
         if waitOnModified:
             try:
                 _notify(f"Config Edit: {self.name}", "Modify the values as needed. Save the file to accept the changes "
-                        "or press ctrl-c at the python prompt to cancel")
+                        f"or press ctrl-c at the python prompt to cancel (path: {configfile})")
                 _waitOnFileModified(configfile)
                 _notify("Edit", "Editing finished, any further modifications will have no effect")
             except KeyboardInterrupt:
