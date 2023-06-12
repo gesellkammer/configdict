@@ -1369,6 +1369,10 @@ class ConfigDict(CheckedDict):
         if save:
             self.save()
 
+    def resetKey(self, key: str) -> None:
+        """Reset the given key to its default value"""
+        self[key] = self.default[key]
+
     def save(self, path: str = None, header:str='') -> None:
         """
         Save this to its persistent path (or a custom path)
@@ -1380,7 +1384,7 @@ class ConfigDict(CheckedDict):
         loaded in a future session
 
         Args:
-            path (str): the path to save the config. If None and this
+            path: the path to save the config. If None and this
                 is a named config, it is saved to the path returned by
                 :meth:`~ConfigDict.getPath`
             header: if given, this string is written prior to the dict, as
@@ -1419,7 +1423,7 @@ class ConfigDict(CheckedDict):
             rows.append((key, str(value), infostr, doc if doc else ""))
         return rows
 
-    def generateRstDocumentation(self, maxwidth=80, withName=True, withDescription=True,
+    def generateRstDocumentation(self, maxWidth=80, withName=True, withDescription=True,
                                  withLink=True, linkPrefix=''
                                  ) -> str:
         """
@@ -1427,6 +1431,17 @@ class ConfigDict(CheckedDict):
 
         The generated string can then be dumped to a file and included
         in documentation
+
+        Args:
+            maxWidth: the max. width of a line
+            withName: if True, add the name of the config (if it has a name)
+            withDescription: if True, add this dict's description (if it has any)
+            withLink: if True, for each key:value pair generate a RST link using the given linkPrefix
+                For example, for a key 'foo' and a linkPrefix='config' the generated link will be
+                ``.. _configfoo``. This link can be used within the documentation to link to this key
+
+        Returns:
+            the generated rst documentation, as str.
         """
         lines = []
         _ = lines.append
@@ -1436,7 +1451,7 @@ class ConfigDict(CheckedDict):
             _("-" * len(self.name))
             _('')
         if withDescription and self.description:
-            _(textwrap.wrap(self.description, width=maxwidth))
+            _(textwrap.wrap(self.description, width=maxWidth))
             _('\n------------------------\n')
         for key, value in self.default.items():
             if withLink:
