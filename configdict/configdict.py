@@ -256,15 +256,32 @@ def _asYaml(d: dict[str, Any],
             doc: dict[str, str],
             default: dict[str, Any],
             validator: dict[str, Any] = None,
-            sortKeys=False
+            keys: list[str] = None,
+            advancedPrefix = '.'
             ) -> str:
     lines = []
 
-    items = list(d.items())
-    if sortKeys:
-        items.sort(key=lambda pair: pair[0])
+    # detect if keys have advanced keys and they are all at the end
+
+    if keys:
+        items = [(k, d[k]) for k in keys]
+    else:
+        items = list(d.items())
+
+    firstAdvanced = next((i for i, item in enumerate(items) if item[0].startswith(advancedPrefix)), None)
+    if firstAdvanced is not None and all(k.startswith(advancedPrefix) for k, v in items[firstAdvanced:]):
+        addAdvancedSeparator = True
+    else:
+        addAdvancedSeparator = False
 
     for key, value in items:
+        if addAdvancedSeparator and key.startswith(advancedPrefix):
+            addAdvancedSeparator = False
+            lines.append("\n"
+                         "#####################################################\n"
+                         "#                 Advanced Keys                     #\n"
+                         "#####################################################\n")
+
         choices = validator.get(f"{key}::choices")
         valuerange = validator.get(f"{key}::range")
         valuetype = validator.get(f"{key}::type")
@@ -305,6 +322,16 @@ def _htmlTable(rows: list, headers, maxwidths=None, rowstyles=None) -> str:
         _("</tr>")
     _("</tbody></table>")
     return "".join(parts)
+
+
+def _checkDocs(docs: dict[str, str], keys: set[str]) -> bool:
+    ok = True
+    for key in docs.keys():
+        if key not in keys:
+            likely = _bestMatches(key, keys, limit=16, minpercent=60)
+            logger.warning(f"Key {key} not defined. Did you mean {likely}?. \nPossible keys: {keys}")
+            ok = False
+    return ok
 
 
 def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
@@ -514,7 +541,8 @@ class CheckedDict(dict):
                  callback: Callable[[str, Any], None] = None,
                  precallback=None,
                  autoload=True,
-                 strict=True) -> None:
+                 strict=True,
+                 advancedPrefix='.') -> None:
 
         self.default = default if default else {}
         self._validator = _checkValidator(validator, default) if validator else {}
@@ -525,6 +553,10 @@ class CheckedDict(dict):
         self._building = False
         self._normalizedKeys: dict[str, str] = {}
         self._bypass = False
+        self._advancedPrefix = advancedPrefix
+
+        if docs:
+            _checkDocs(docs, self._allowedkeys)
 
         if self.default:
             if autoload:
@@ -678,7 +710,9 @@ class CheckedDict(dict):
         if self._normalizedKeys and (key2 := self._normalizedKeys.get(normalizeKey(key))):
             return dict.__getitem__(self, key2)
 
-        raise KeyError(f"key '{key}' not known. Possible keys: {sorted(self.keys())}")
+        nearest = self._bestMatches(key, limit=8)
+        raise KeyError(f"key '{key}' not known. Did you mean {nearest}?\n"
+                       f"Possible keys: {sorted(self.keys())}")
 
     def __setitem__(self, key: str, value) -> None:
         if self._bypass:
@@ -689,7 +723,7 @@ class CheckedDict(dict):
             if self._normalizedKeys and (normkey := self._normalizedKeys.get(normalizeKey(key))):
                 key = normkey
             else:
-                mostlikely = _bestMatches(key, list(self._allowedkeys), 16, minpercent=60)
+                mostlikely = self._bestMatches(key=key, limit=8)
                 msg = f"Unknown key {key}. Did you mean {', '.join(mostlikely)}?"
                 raise KeyError(msg)
 
@@ -709,6 +743,9 @@ class CheckedDict(dict):
 
         if self._callback is not None:
             self._callback(key, value)
+
+    def _bestMatches(self, key: str, limit=16, minpercent=60):
+        return _bestMatches(key, list(self._allowedkeys), limit=limit, minpercent=minpercent)
 
     def load(self) -> None:
         """
@@ -971,8 +1008,13 @@ class CheckedDict(dict):
         """
         Returns this dict as yaml str, with comments, defaults, etc.
         """
-        return _asYaml(self, doc=self._docs, validator=self._validator,
-                       default=self.default, sortKeys=sortKeys)
+        if sortKeys:
+            keys = self._sortedKeys()
+        else:
+            keys = list(self.keys())
+            keys.sort(key=lambda key: int(key.startswith(self._advancedPrefix)))
+            return _asYaml(self, doc=self._docs, validator=self._validator,
+                       default=self.default, keys=keys)
 
     def __enter__(self):
         self._building = True
@@ -982,10 +1024,10 @@ class CheckedDict(dict):
         self._building = False
         self.load()
 
-    def edit(self, waitOnModified=True) -> None:
+    def edit(self, waitOnModified=True, sortKeys=False) -> None:
         configfile = tempfile.mktemp(suffix=".yaml")
         header = _editHeaderWatch if waitOnModified else _editHeaderPopup
-        self._saveAsYaml(configfile, header=header)
+        self._saveAsYaml(configfile, header=header, sortKeys=sortKeys)
         _openInEditor(configfile)
         if waitOnModified:
             try:
@@ -997,7 +1039,7 @@ class CheckedDict(dict):
             _waitForClick(title=self.name)
         self.load(configfile)
 
-    def _saveAsYaml(self, path: str, header: str = '', sortKeys=False) -> None:
+    def _saveAsYaml(self, path: str, header: str = '', sortKeys=False, separateAdvancedKeys=True) -> None:
         yamlstr = self.asYaml(sortKeys=sortKeys)
         folder = os.path.split(path)[0]
         os.makedirs(folder, exist_ok=True)
@@ -1008,12 +1050,20 @@ class CheckedDict(dict):
             f.write(yamlstr)
         if not os.path.exists(path):
             raise RuntimeError(f"Could not save config to file '{path}', file not found")
-    
+
+    @cache
+    def _sortedKeys(self) -> list[str]:
+        keys = list(self.keys())
+        keys.sort()
+        keys.sort(key=lambda k: int(k.startswith(self._advancedPrefix)))
+        return keys
+
     def _repr_html_(self) -> str:
         parts = [f'<div><h4>{type(self).__name__}</h4>']
         parts.append("<br>")
         rows = []
-        for k in self.keys():
+        keys = self._sortedKeys()
+        for k in keys:
             v = self[k]
             rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
         table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
@@ -1184,7 +1234,8 @@ class ConfigDict(CheckedDict):
                  fmt='yaml',
                  sortKeys=False,
                  description='',
-                 strict=True) -> None:
+                 strict=True,
+                 advancedPrefix='.') -> None:
 
         self._name = ''
         self._base = ''
@@ -1218,7 +1269,8 @@ class ConfigDict(CheckedDict):
                          docs=docs,
                          callback=self._mycallback,
                          precallback=precallback,
-                         autoload=False)
+                         autoload=False,
+                         advancedPrefix=advancedPrefix)
         self.sortKeys = sortKeys
 
         if default is not None:
@@ -1512,7 +1564,8 @@ class ConfigDict(CheckedDict):
             parts.append(f'persistent (<code>"{self.getPath()}"</code>)')
         parts.append("<br>")
         rows = []
-        for k in self.keys():
+        keys = self._sortedKeys()
+        for k in keys:
             v = self[k]
             descr = self.getDoc(k)
             if v == self.default[k]:
@@ -1574,7 +1627,7 @@ class ConfigDict(CheckedDict):
             self._configPath = configPathFromName(self._name, self.fmt)
         return self._configPath
 
-    def edit(self, waitOnModified=True) -> None:
+    def edit(self, waitOnModified=True, sortKeys=False) -> None:
         """
         Edit this config by opening it in an external application.
 
@@ -1597,10 +1650,11 @@ class ConfigDict(CheckedDict):
                 many applications which have a server mode or unique instance
                 mode might in fact exit right away from the perspective of the
                 subprocess which launched them
+            sortKeys: if True, keys appear in sorted order
         """
         header = _editHeaderWatch if waitOnModified else _editHeaderPopup
         configfile = tempfile.mktemp(suffix=".yaml")
-        self._saveAsYaml(configfile, header=header)
+        self._saveAsYaml(configfile, header=header, sortKeys=sortKeys)
         assert os.path.exists(configfile)
         _openInEditor(configfile)
         if waitOnModified:
