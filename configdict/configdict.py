@@ -30,7 +30,8 @@ Example
     config = ConfigDict("myproj.subproj")
     config.addKey("keyA", 10, doc="documentaion of keyA")
     config.addKey("keyB", 0.5, range=(0, 1))
-    config.addKey("keyC", "blue", choices=("blue", "red"), doc="documentation of keyC")
+    config.addKey("keyC", "blue", choices=("blue", "red"), 
+                  doc="documentation of keyC")
     config.load()
 
 Alternativaly, a :class:`ConfigDict` or a :class:`CheckedDict` can be built
@@ -41,7 +42,7 @@ via a context manager::
         cfg('backend', 'matplotlib', choices={'matlotlib'})
         cfg('spectrogram.figsize', (24, 8))
         cfg('spectrogram.maxfreq', 12000,
-          doc="Highest frequency in a spectrogram")
+            doc="Highest frequency in a spectrogram")
         cfg('spectrogram.window', 'hamming', choices={'hamming', 'hanning'})
         # no need to call .load, it is called automatically
 
@@ -683,8 +684,8 @@ class CheckedDict(dict):
             type: the type accepted, as passed to isinstance (can be a tuple)
             choices: a set/tuple of possible values
             range: a (min, max) tuple defining an allowed range for this value
-            validatefunc: a function ``(config: dict, key:str, value) -> bool``, should return
-                `True` if value is valid for `key` or False otherwise
+            validatefunc: a function ``(config: dict, key:str, value) -> bool``,
+                should return `True` if value is valid for `key` or False otherwise
             doc: documentation for this key
 
         """
@@ -810,7 +811,8 @@ class CheckedDict(dict):
 
         """
         func = self._validator.get(key, None)
-        assert func is None or callable(func), f"Validate func should be callable for key {key}, got {func}"
+        assert func is None or callable(func), \
+            f"Validate func should be callable for key {key}, got {func}"
         return func
 
     def getChoices(self, key: str) -> Optional[list]:
@@ -1071,7 +1073,8 @@ class CheckedDict(dict):
             _waitForClick(title=self.name)
         self.load(configfile)
 
-    def _saveAsYaml(self, path: str, header: str = '', sortKeys=False, separateAdvancedKeys=True) -> None:
+    def _saveAsYaml(self, path: str, header: str = '', sortKeys=False,
+                    separateAdvancedKeys=True) -> None:
         yamlstr = self.asYaml(sortKeys=sortKeys)
         folder = os.path.split(path)[0]
         os.makedirs(folder, exist_ok=True)
@@ -1098,7 +1101,9 @@ class CheckedDict(dict):
         for k in keys:
             v = self[k]
             rows.append((k, str(v), self._infoStr(k), self.getDoc(k)))
-        table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
+        table = _htmlTable(rows,
+                           headers=('Key', 'Value', 'Type', 'Descr'),
+                           maxwidths=[0, 0, 150, 400],
                            rowstyles=('strong', 'code', None, None))
         parts.append(table)
         parts.append("</div>")
@@ -1243,7 +1248,9 @@ class ConfigDict(CheckedDict):
         # Using inheritance
         class MyConfig(ConfigDict):
             def __init__(self):
-                super().__init__(name="myconfig", default=default, validator=validator,
+                super().__init__(name="myconfig",
+                                 default=default,
+                                 validator=validator,
                                  docs=docs)
 
         cfg = MyConfig()
