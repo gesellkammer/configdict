@@ -862,29 +862,61 @@ class CheckedDict(dict):
         if not self._validator:
             logger.debug(f"Validator not set, cannot check value {value} (key '{key}')")
             return
-        choices = self.getChoices(key)
-        if choices is not None and value not in choices:
-            return f"key {key} should be one of {choices}, got {value}"
-        func = self.getValidateFunc(key)
-        if func:
-            error = func(self, key, value)
-            if not error:
-                return f"{value} is not valid for key {key}"
-            elif isinstance(error, str):
-                return f"{value} is not valid for key {key}: {error}"
-        t = self.getType(key)
-        if t == float:
-            if not _isfloaty(value):
-                return f"Expected floatlike for key {key}, got {type(value).__name__}"
-        elif t == str and not isinstance(value, (bytes, str)):
-            return f"Expected str or bytes for key {key}, got {type(value).__name__}"
-        elif not isinstance(value, t):
-            return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
 
-        r = self.getRange(key)
-        if r and not (r[0] <= value <= r[1]):
-            return f"Value for key {key} should be within range {r}, got {value}"
+        for validatortype in self.getValidateFunc(key):
+            if validatortype == 'choices':
+                choices = self.getChoices(key)
+                if choices is not None and value not in choices:
+                    return f"key {key} should be one of {choices}, got {value}"
+            elif validatortype == 'func':
+                error = self.getValidateFunc(key)(self, key, value)
+                if error is False:
+                    return f"{value} is not valid for key {key}"
+                elif isinstance(error, str) and error:
+                    return f"{value} is not valid for key {key}: {error}"
+            elif validatortype == 'type':
+                t = self.getType(key)
+                if t == float:
+                    if not _isfloaty(value):
+                        return f"Expected floatlike for key {key}, got {type(value).__name__}"
+                elif t == str:
+                    if not isinstance(value, (bytes, str)):
+                        return f"Expected str or bytes for key {key}, got {type(value).__name__}"
+                elif not isinstance(value, t):
+                    return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
+            elif validatortype == 'range':
+                if (r := self.getRange(key)) and not (r[0] <= value <= r[1]):
+                    return f"Value for key {key} should be within range {r}, got {value}"
         return None
+
+    @cache
+    def getValidatorTypes(self, key: str) -> list[str]:
+        """
+        Return the validator types for a given key
+
+        A validator type for a given key can be a choices validator, where a set of
+        possible values is given for a given key; it can be a range, where the
+        value must be within a given range; a type, where a value must be of
+        a certain type; or a function, which must return True if the value
+        is valid, or False or an error message as string if the value is invalid
+
+        Args:
+            key: the key to query
+
+        Returns:
+            a list of validator types, where each item is one of 'choices',
+            'range', 'type', 'func'
+        """
+        validators = []
+        if f"{key}::choices" in self._validator:
+            validators.append('choices')
+        if f"{key}::range" in self._validator:
+            validators.append('range')
+        if key in self._validator:
+            validators.append('func')
+        if f"{key}::type" in self._validator:
+            validators.append('type')
+        return validators
 
     def getRange(self, key: str) -> Optional[tuple]:
         """
@@ -1136,7 +1168,6 @@ class ConfigDict(CheckedDict):
                   'keyB::range': (10, 30)
                 }
 
-
             Choices can be defined lazyly by giving a lambda
 
         docs: a dict containing documentation for each key
@@ -1155,6 +1186,8 @@ class ConfigDict(CheckedDict):
             value, or **raise ValueError** to stop the transaction
 
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
+        advancedPrefix: keys with this prefix are marked as advanced. Whenever the dict
+            is displayed or edited, these keys appear after all the other keys
 
 
     Example
