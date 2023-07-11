@@ -865,7 +865,7 @@ class CheckedDict(dict):
             logger.debug(f"Validator not set, cannot check value {value} (key '{key}')")
             return
 
-        for validatortype in self.getValidateFunc(key):
+        for validatortype in self.validatorTypes():
             if validatortype == 'choices':
                 choices = self.getChoices(key)
                 if choices is not None and value not in choices:
@@ -892,7 +892,7 @@ class CheckedDict(dict):
         return None
 
     @cache
-    def getValidatorTypes(self, key: str) -> list[str]:
+    def validatorTypes(self, key: str) -> list[str]:
         """
         Return the validator types for a given key
 
