@@ -108,6 +108,10 @@ logger = logging.getLogger("configdict")
 _UNKNOWN = object()
 
 
+class ReadOnlyError(Exception):
+    """Raised when a dict is marked as read-only and the user attempts to modify it"""
+
+
 _editHeaderWatch = (r'''#  ****************************************************
 #  *   Edit this file to modify the configuration     *
 #  *   When you are finished editing, save the file   *
@@ -543,9 +547,15 @@ class CheckedDict(dict):
                  precallback=None,
                  autoload=True,
                  strict=True,
+                 readonly=False,
                  advancedPrefix='.') -> None:
 
         self.default = default if default else {}
+        """The default dict"""
+
+        self.readonly = False
+        """True if this dict is read-only"""
+
         self._validator = _checkValidator(validator, default) if validator else {}
         self._docs = docs if docs else {}
         self._allowedkeys = set(default.keys()) if default else set()
@@ -564,6 +574,8 @@ class CheckedDict(dict):
                 self.load()
             if not strict:
                 self._normalizedKeys = {normalizeKey(k): k for k in self.default.keys()}
+
+        self.readonly = readonly
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
@@ -719,6 +731,11 @@ class CheckedDict(dict):
         if self._bypass:
             dict.__setitem__(key, value)
             return
+
+        if self.readonly:
+            if isinstance(value, str):
+                value = "'{value}'"
+            raise ReadOnlyError(f"This dict is read-only. Tried to set '{key}'={value}")
 
         if key not in self._allowedkeys:
             if self._normalizedKeys and (normkey := self._normalizedKeys.get(normalizeKey(key))):
