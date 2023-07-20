@@ -576,6 +576,7 @@ class CheckedDict(dict):
                 self._normalizedKeys = {normalizeKey(k): k for k in self.default.keys()}
 
         self.readonly = readonly
+        self._strict = strict
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
@@ -1327,6 +1328,7 @@ class ConfigDict(CheckedDict):
                          callback=self._mycallback,
                          precallback=precallback,
                          autoload=False,
+                         strict=strict,
                          advancedPrefix=advancedPrefix)
         self.sortKeys = sortKeys
 
