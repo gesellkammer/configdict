@@ -94,7 +94,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Optional, Any, Union, Callable, TypeVar, Set
     validatefunc_t = Callable[[dict, str, Any], bool]
-    T = TypeVar("T", bound="CheckedDict")
+    _CheckedDictT = TypeVar("_CheckedDictT", bound="CheckedDict")
+    _ConfigDictT = TypeVar("_ConfigDictT", bound="ConfigDict")
 
 __all__ = ("CheckedDict",
            "ConfigDict",
@@ -125,7 +126,7 @@ _editHeaderPopup = (r'''#  *****************************************************
 ''')
 
 
-def sortNatural(seq: list, key:Callable[[Any], str]=None) -> list:
+def sortNatural(seq: list, key: Callable[[Any], str] | None = None) -> list:
     """
     Sort a string sequence naturally
 
@@ -222,7 +223,7 @@ def _yamlComment(doc: Optional[str],
         if len(doc) < maxwidth:
             lines.append(f"# {doc}")
         else:
-            lines.extend("# " + l for l in textwrap.wrap(doc, maxwidth))
+            lines.extend("# " + line for line in textwrap.wrap(doc, maxwidth))
     if choices:
         valuetype = None
     if valuetype:
@@ -244,7 +245,7 @@ def _yamlValue(value) -> str:
     return s.replace("\n...\n", "")
 
 
-def _typeName(t: Union[str, type, tuple[type,...]]) -> str:
+def _typeName(t: str | type | tuple[type, ...]) -> str:
     if isinstance(t, str):
         return t
     elif isinstance(t, type):
@@ -254,15 +255,17 @@ def _typeName(t: Union[str, type, tuple[type,...]]) -> str:
     else:
         raise TypeError(f"Expected a str, type or tuple of types, got {t}")
 
+
 def _asRstLinkKey(key: str) -> str:
     return key.replace(".", "_").replace(" ", "").lower()
+
 
 def _asYaml(d: dict[str, Any],
             doc: dict[str, str],
             default: dict[str, Any],
-            validator: dict[str, Any] = None,
-            keys: list[str] = None,
-            advancedPrefix = '.'
+            validator: dict[str, Any] | None = None,
+            keys: list[str] | None = None,
+            advancedPrefix: str = '.'
             ) -> str:
     lines = []
 
@@ -287,9 +290,12 @@ def _asYaml(d: dict[str, Any],
                          "#                 Advanced Keys                     #\n"
                          "#####################################################\n")
 
-        choices = validator.get(f"{key}::choices")
-        valuerange = validator.get(f"{key}::range")
-        valuetype = validator.get(f"{key}::type")
+        if validator is not None:
+            choices = validator.get(f"{key}::choices")
+            valuerange = validator.get(f"{key}::range")
+            valuetype = validator.get(f"{key}::type")
+        else:
+            choices, valuerange, valuetype = None, None, None
         valuetypestr = type(value).__name__ if valuetype is None else _typeName(valuetype)
         comment = _yamlComment(doc=doc.get(key), default=default.get(key),
                                choices=choices, valuerange=valuerange,
@@ -331,15 +337,16 @@ def _htmlTable(rows: list, headers, maxwidths=None, rowstyles=None) -> str:
 
 def _checkDocs(docs: dict[str, str], keys: set[str]) -> bool:
     ok = True
+    keyslist = list(keys)
     for key in docs.keys():
         if key not in keys:
-            likely = _bestMatches(key, keys, limit=16, minpercent=60)
+            likely = _bestMatches(text=key, options=keyslist, limit=16, minpercent=60)
             logger.warning(f"Key {key} not defined. Did you mean {likely}?. \nPossible keys: {keys}")
             ok = False
     return ok
 
 
-def _checkValidator(validatordict: dict, defaultdict: dict) -> dict:
+def _checkValidator(validatordict: dict[str, Any], defaultdict: dict[str, Any]) -> dict[str, Any]:
     """
     Checks the validity of the validator itself, and makes any needed
     postprocessing on the validator
@@ -382,6 +389,7 @@ def _openInStandardApp(path: str) -> None:
     if platform == 'linux':
         subprocess.call(["xdg-open", path])
     elif platform == "win32":
+        # This function is only present in windows
         os.startfile(path)
     elif platform == "darwin":
         subprocess.call(["open", path])
@@ -396,7 +404,7 @@ def _notify(title: str, msg: str) -> None:
         subprocess.call(['notify-send', title, msg])
 
 
-def _waitOnFileModified(path:str, timeout:float=None, notification:str='') -> bool:
+def _waitOnFileModified(path: str, timeout: float | None = None, notification='') -> bool:
     try:
         from watchdog.observers import Observer
         from watchdog.events import PatternMatchingEventHandler
@@ -450,7 +458,7 @@ def _showInfoDialog(msg: str, title: str = None) -> None:
     window.destroy()
 
 
-def _waitForClick(title:str=None):
+def _waitForClick(title: str = None):
     _showInfoDialog("Click OK when finished editing", title=title)
 
 
@@ -458,11 +466,11 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
-def _bestMatches(s: str, options: list[str], limit:int, minpercent:int, lengthMatchPercent=None) -> list[str]:
+def _bestMatches(text: str, options: list[str], limit: int, minpercent: int, lengthMatchPercent=None) -> list[str]:
     from fuzzywuzzy import process
-    possibleChoices = process.extract(s, options, limit=limit)
+    possibleChoices = process.extract(text, options, limit=limit)
     if lengthMatchPercent:
-        lens = len(s)
+        lens = len(text)
         lengthdiff = lens * (1 - lengthMatchPercent/100)
         minlength = lens - lengthdiff
         maxlength = lens + lengthdiff
@@ -550,13 +558,13 @@ class CheckedDict(dict):
                  readonly=False,
                  advancedPrefix='.') -> None:
 
-        self.default = default if default else {}
+        self.default: dict[str, Any] = default if default is not None else {}
         """The default dict"""
 
         self.readonly = False
         """True if this dict is read-only"""
 
-        self._validator = _checkValidator(validator, default) if validator else {}
+        self._validator: dict[str, Any] = validator if validator is not None else {}
         self._docs = docs if docs else {}
         self._allowedkeys = set(default.keys()) if default else set()
         self._precallback = precallback
@@ -565,6 +573,7 @@ class CheckedDict(dict):
         self._normalizedKeys: dict[str, str] = {}
         self._bypass = False
         self._advancedPrefix = advancedPrefix
+        self._cache = {}
 
         if docs:
             _checkDocs(docs, self._allowedkeys)
@@ -577,6 +586,9 @@ class CheckedDict(dict):
 
         self.readonly = readonly
         self._strict = strict
+
+        if self._validator:
+            self._validator = _checkValidator(self._validator, self.default)
 
     def __hash__(self) -> int:
         keyshash = hash(tuple(self.keys()))
@@ -594,7 +606,7 @@ class CheckedDict(dict):
     def normalizeKey(key: str) -> str:
         return normalizeKey(key)
 
-    def copy(self: T) -> T:
+    def copy(self: _CheckedDictT) -> _CheckedDictT:
         """
         Create a copy of this dict
         """
@@ -605,7 +617,7 @@ class CheckedDict(dict):
         out._bypass = False
         return out
 
-    def clone(self: T, updates: dict = None, **kws) -> T:
+    def clone(self: _CheckedDictT, updates: dict = None, **kws) -> _CheckedDictT:
         """
         Clone self with modifications
 
@@ -632,24 +644,44 @@ class CheckedDict(dict):
             out.update(kws)
         return out
 
-    def makeDefault(self: T) -> T:
+    def _infoStr(self, k: str) -> str:
+        info = []
+        choices = self.getChoices(k)
+        if choices:
+            choices = sortNatural([str(choice) for choice in choices])
+            choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
+            info.append(choicestr)
+        elif (keyrange := self.getRange(k)) is not None:
+            low, high = keyrange
+            info.append(f"between {low} - {high}")
+        else:
+            typestr = self.getTypestr(k)
+            info.append("type: " + typestr)
+
+        if self[k] != self.default[k]:
+            info.append(f'default: {self.default[k]}')
+        return" | ".join(info) if info else ""
+
+    def makeDefault(self: _CheckedDictT) -> _CheckedDictT:
         """
         Create a version of this class with all values set to the default
         """
         return self.clone(updates=self.default)
 
-    def diff(self, other: T | None = None) -> dict:
+    def diff(self, other: dict = None) -> dict:
         """
         Get a dict containing keys:values which differ from the default or from another dict
 
         Args:
-            other: if given, another dict which this is compared against
+            other: if given, another dict which this is compared against. Otherwise
+                the diff is calculated to the default dict
 
         Returns:
             a dict containing key: value pairs where self differs from other
         """
         if other is None:
             other = self.default
+        assert other is not None
         return {k: v for k, v in self.items()
                 if v != other.get(k, _UNKNOWN)}
 
@@ -664,7 +696,7 @@ class CheckedDict(dict):
     def addKey(self,
                key: str,
                value: Any,
-               type: Union[type, tuple[type,...]] = None,
+               type: Union[type, tuple[type, ...]] = None,
                choices: Union[Set, tuple] = None,
                range: tuple[Any, Any] = None,
                validatefunc: validatefunc_t = None,
@@ -730,7 +762,7 @@ class CheckedDict(dict):
 
     def __setitem__(self, key: str, value) -> None:
         if self._bypass:
-            dict.__setitem__(key, value)
+            dict.__setitem__(self, key, value)
             return
 
         if self.readonly:
@@ -791,7 +823,6 @@ class CheckedDict(dict):
             d = self.default.copy()
             d.update(self)
             self.update(d)
-        self._loaded = True
 
     def checkDict(self, d: dict) -> str:
         """
@@ -815,7 +846,7 @@ class CheckedDict(dict):
                     return errormsg
         return ""
 
-    def getValidateFunc(self, key:str) -> Optional[validatefunc_t]:
+    def getValidateFunc(self, key: str) -> Optional[validatefunc_t]:
         """
         Returns a function to validate a value for ``key``
 
@@ -889,7 +920,9 @@ class CheckedDict(dict):
                 if choices is not None and value not in choices:
                     return f"key {key} should be one of {choices}, got {value}"
             elif validatortype == 'func':
-                error = self.getValidateFunc(key)(self, key, value)
+                func = self.getValidateFunc(key)
+                assert func is not None
+                error = func(self, key, value)
                 if error is False:
                     return f"{value} is not valid for key {key}"
                 elif isinstance(error, str) and error:
@@ -909,7 +942,6 @@ class CheckedDict(dict):
                     return f"Value for key {key} should be within range {r}, got {value}"
         return None
 
-    @cache
     def validatorTypes(self, key: str) -> list[str]:
         """
         Return the validator types for a given key
@@ -927,6 +959,13 @@ class CheckedDict(dict):
             a list of validator types, where each item is one of 'choices',
             'range', 'type', 'func'
         """
+        validatorTypesCache = self._cache.get('validatortypes')
+        if validatorTypesCache is None:
+            validatorTypesCache = {}
+            self._cache['validatortypes'] = validatorTypesCache
+        elif key in validatorTypesCache:
+            return validatorTypesCache[key]
+
         validators = []
         if f"{key}::choices" in self._validator:
             validators.append('choices')
@@ -936,6 +975,7 @@ class CheckedDict(dict):
             validators.append('func')
         if f"{key}::type" in self._validator:
             validators.append('type')
+        validatorTypesCache[key] = validators
         return validators
 
     def getRange(self, key: str) -> Optional[tuple]:
@@ -958,7 +998,7 @@ class CheckedDict(dict):
             return None
         return self._validator.get(key+"::range", None)
 
-    def getType(self, key: str) -> Union[type, tuple[type,...]]:
+    def getType(self, key: str) -> Union[type, tuple[type, ...]]:
         """
         Returns the expected type for key's value
 
@@ -1016,13 +1056,13 @@ class CheckedDict(dict):
         for k, v in d.items():
             if k in keys:
                 out[k] = v
-            elif k2:=self._normalizedKeys.get(normalizeKey(k)):
+            elif k2 := self._normalizedKeys.get(normalizeKey(k)):
                 out[k2] = v
             else:
                 raise KeyError(f"Unsupported key: {k}")
         return out
 
-    def update(self, d: dict=None, **kws) -> None:
+    def update(self, d: dict = None, **kws) -> None:
         """
         Update ths dict with `d` or any key:value pair passed as keyword
         """
@@ -1043,7 +1083,7 @@ class CheckedDict(dict):
                 raise ValueError(f"invalid keywords: {errormsg}")
             super().update(kws)
 
-    def updated(self:T, d: dict=None, **kws) -> T:
+    def updated(self: _CheckedDictT, d: dict = None, **kws) -> _CheckedDictT:
         """
         The same as :meth:`~CheckedDict.update`, but returns self
         """
@@ -1064,8 +1104,8 @@ class CheckedDict(dict):
             keys = self._sortedKeys()
         else:
             keys = list(self.keys())
-            keys.sort(key=lambda key: int(key.startswith(self._advancedPrefix)))
-            return _asYaml(self, doc=self._docs, validator=self._validator,
+        keys.sort(key=lambda key: int(key.startswith(self._advancedPrefix)))
+        return _asYaml(self, doc=self._docs, validator=self._validator,
                        default=self.default, keys=keys)
 
     def __enter__(self):
@@ -1075,21 +1115,6 @@ class CheckedDict(dict):
     def __exit__(self, *args, **kws):
         self._building = False
         self.load()
-
-    def edit(self, waitOnModified=True, sortKeys=False) -> None:
-        configfile = tempfile.mktemp(suffix=".yaml")
-        header = _editHeaderWatch if waitOnModified else _editHeaderPopup
-        self._saveAsYaml(configfile, header=header, sortKeys=sortKeys)
-        _openInEditor(configfile)
-        if waitOnModified:
-            try:
-                _waitOnFileModified(configfile)
-            except KeyboardInterrupt:
-                logger.debug("Editing aborted")
-                return
-        else:
-            _waitForClick(title=self.name)
-        self.load(configfile)
 
     def _saveAsYaml(self, path: str, header: str = '', sortKeys=False,
                     separateAdvancedKeys=True) -> None:
@@ -1104,11 +1129,13 @@ class CheckedDict(dict):
         if not os.path.exists(path):
             raise RuntimeError(f"Could not save config to file '{path}', file not found")
 
-    @cache
     def _sortedKeys(self) -> list[str]:
+        if (out := self._cache.get('sortedkeys')) is not None:
+            return out
         keys = list(self.keys())
         keys.sort()
         keys.sort(key=lambda k: int(k.startswith(self._advancedPrefix)))
+        self._cache['sortedkeys'] = keys
         return keys
 
     def _repr_html_(self) -> str:
@@ -1128,7 +1155,7 @@ class CheckedDict(dict):
         return "".join(parts)
 
 
-def _loadJson(path:str) -> Optional[dict]:
+def _loadJson(path: str) -> Optional[dict]:
     try:
         return json.load(open(path))
     except json.JSONDecodeError:
@@ -1283,10 +1310,10 @@ class ConfigDict(CheckedDict):
 
     def __init__(self,
                  name: str,
-                 default: dict[str, Any]=None,
+                 default: dict[str, Any] = None,
                  validator: dict[str, Any] = None,
                  docs: dict[str, str] = None,
-                 precallback:Callable[[ConfigDict, str, Any, Any], Any]=None,
+                 precallback: Callable[[ConfigDict, str, Any, Any], Any] = None,
                  persistent=False,
                  load=True,
                  fmt='yaml',
@@ -1379,7 +1406,7 @@ class ConfigDict(CheckedDict):
         if self._persistent:
             self.save()
 
-    def update(self, d: dict=None, **kws) -> None:
+    def update(self, d: dict = None, **kws) -> None:
         """
         Update this dict with the values in d.
 
@@ -1401,7 +1428,7 @@ class ConfigDict(CheckedDict):
         if persistent:
             self.save()
 
-    def copy(self: T) -> T:
+    def copy(self: _CheckedDictT) -> _CheckedDictT:
         """
         Create a copy if this dict.
 
@@ -1419,9 +1446,9 @@ class ConfigDict(CheckedDict):
         """
         return self.default == other.default
         
-    def clone(self: T, updates: dict = None, name: str = None, persistent=False, 
+    def clone(self: _ConfigDictT, updates: dict = None, name: str = None, persistent=False,
               cloneCallbacks=True, **kws
-              ) -> T:
+              ) -> _ConfigDictT:
         """
         Create a clone of this dict
 
@@ -1452,7 +1479,10 @@ class ConfigDict(CheckedDict):
                 out.registerCallback(func, pattern)
         return out
 
-    def registerCallback(self, func:Callable[[ConfigDict, str, Any], None], pattern:str=r".*") -> None:
+    def registerCallback(self,
+                         func: Callable[[ConfigDict, str, Any], None],
+                         pattern=r".*"
+                         ) -> None:
         """
         Register a callback to be fired when a key matching the given pattern is changed.
 
@@ -1484,7 +1514,7 @@ class ConfigDict(CheckedDict):
         """Reset the given key to its default value"""
         self[key] = self.default[key]
 
-    def save(self, path: str = None, header:str='') -> None:
+    def save(self, path: str = None, header='') -> None:
         """
         Save this to its persistent path (or a custom path)
 
@@ -1550,6 +1580,7 @@ class ConfigDict(CheckedDict):
             withLink: if True, for each key:value pair generate a RST link using the given linkPrefix
                 For example, for a key 'foo' and a linkPrefix='config' the generated link will be
                 ``.. _configfoo``. This link can be used within the documentation to link to this key
+            linkPrefix: a prefix to use for all links
 
         Returns:
             the generated rst documentation, as str.
@@ -1599,23 +1630,23 @@ class ConfigDict(CheckedDict):
         writer.writerows(rows)
         return s.getvalue()
 
-    def _infoStr(self, k: str) -> str:
-        info = []
-        choices = self.getChoices(k)
-        if choices:
-            choices = sortNatural([str(choice) for choice in choices])
-            choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
-            info.append(choicestr)
-        elif (keyrange := self.getRange(k)) is not None:
-            low, high = keyrange
-            info.append(f"between {low} - {high}")
-        else:
-            typestr = self.getTypestr(k)
-            info.append("type: " + typestr)
-
-        if self[k] != self.default[k]:
-            info.append(f'default: {self.default[k]}')
-        return" | ".join(info) if info else ""
+    # def _infoStr(self, k: str) -> str:
+    #     info = []
+    #     choices = self.getChoices(k)
+    #     if choices:
+    #         choices = sortNatural([str(choice) for choice in choices])
+    #         choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
+    #         info.append(choicestr)
+    #     elif (keyrange := self.getRange(k)) is not None:
+    #         low, high = keyrange
+    #         info.append(f"between {low} - {high}")
+    #     else:
+    #         typestr = self.getTypestr(k)
+    #         info.append("type: " + typestr)
+    #
+    #     if self[k] != self.default[k]:
+    #         info.append(f'default: {self.default[k]}')
+    #     return" | ".join(info) if info else ""
 
     def _repr_html_(self) -> str:
         parts = [f'<div><h4>{type(self).__name__}: <strong>{self.name}</strong></h4>']
@@ -1859,9 +1890,11 @@ def _mergeDicts(readdict: dict[str, Any], default: dict[str, Any]) -> dict[str, 
     return out
 
 
-def _parseName(name: str) -> tuple[str, Optional[str]]:
+def _parseName(name: str) -> tuple[str | None, str]:
     """
-    Returns (configname, base) (which can be None)
+    Returns (base, configname)
+
+    base can be none
     """
     if ":" not in name:
         base = None
@@ -1957,6 +1990,7 @@ def configPathFromName(name: str, fmt='yaml') -> str:
     name = _normalizeName(name)
     userconfigdir = appdirs.user_config_dir()
     base, configname = _parseName(name)
+
     if fmt == 'json':
         configfile = configname + ".json"
     elif fmt == 'yaml':
