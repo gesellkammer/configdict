@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "configdict"
-version = "2.10.0"
+version = "2.10.2"
 description = "A supercharged dict used as configuration"
 authors = [
   { name = "Eduardo Moguillansky", email = "eduardo.moguillansky@gmail.com" },
@@ -30,7 +30,7 @@ packages = ["configdict"]
 
 
 [tool.setuptools.package-data]
-sndfileio = ["py.typed"]
+configdict = ["py.typed"]
 
 [project.urls]
 "Homepage" = "https://github.com/gesellkammer/configdict"

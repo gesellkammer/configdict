@@ -466,9 +466,10 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
-def _bestMatches(text: str, options: list[str], limit: int, minpercent: int, lengthMatchPercent=None) -> list[str]:
+def _bestMatches(text: str, options: list[str], limit: int, minpercent: int, lengthMatchPercent=0) -> list[str]:
     from fuzzywuzzy import process
     possibleChoices = process.extract(text, options, limit=limit)
+    possibleChoices.sort(key=lambda item: item[1], reverse=True)
     if lengthMatchPercent:
         lens = len(text)
         lengthdiff = lens * (1 - lengthMatchPercent/100)
@@ -477,8 +478,9 @@ def _bestMatches(text: str, options: list[str], limit: int, minpercent: int, len
         return [choice for choice, percent in possibleChoices
                 if percent >= minpercent and minlength <= len(choice) <= maxlength]
     else:
-        return [choice for choice, percent in possibleChoices
-                if percent >= minpercent]
+        selected = [choice for choice, percent in possibleChoices
+                    if percent >= minpercent]
+        return selected[:limit]
 
 
 INVALID = object()
@@ -518,7 +520,9 @@ class CheckedDict(dict):
 
             choices can be defined lazyly by giving a lambda which returns a list
             of possible choices
-
+        adaptor: a dict mapping keys to functions to convert the value before being set. An adaptor
+            callback has the form `(key: str, newvalue: Any, oldvalue: Any) -> Any`. The value returned
+            will be the value set for the given key
         docs: a dict containing help lines for keys defined in default
         callback: function ``(key, value) -> None``. This function is called **after**
             the modification has been done.
@@ -552,6 +556,7 @@ class CheckedDict(dict):
                  validator: dict[str, Any] = None,
                  docs: dict[str, str] = None,
                  callback: Callable[[str, Any], None] = None,
+                 adaptor: dict[str, Callable[[str, Any, Any], Any]] = None,
                  precallback=None,
                  autoload=True,
                  strict=True,
@@ -565,8 +570,10 @@ class CheckedDict(dict):
         """True if this dict is read-only"""
 
         self._validator: dict[str, Any] = validator if validator is not None else {}
-        self._docs = docs if docs else {}
-        self._allowedkeys = set(default.keys()) if default else set()
+        self._docs = docs if docs is not None else {}
+        self._allowedkeys = set(default.keys()) if default is not None else set()
+        self._adaptor = adaptor if adaptor is not None else {}
+
         self._precallback = precallback
         self._callback = callback
         self._building = False
@@ -594,7 +601,7 @@ class CheckedDict(dict):
         keyshash = hash(tuple(self.keys()))
         try:
             valueshash = hash(tuple(self.values()))
-        except:
+        except TypeError:
             logger.debug(f"Some values are unhashable, using unsafe hash ({self.values()}")
             valueshash = id(self)
         return hash((len(self), keyshash, valueshash, hash(self._precallback), hash(self._callback)))
@@ -610,8 +617,13 @@ class CheckedDict(dict):
         """
         Create a copy of this dict
         """
-        out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
-                             precallback=self._precallback, callback=self._callback, autoload=False)
+        out = self.__class__(default=self.default,
+                             validator=self._validator,
+                             docs=self._docs,
+                             precallback=self._precallback,
+                             callback=self._callback,
+                             autoload=False,
+                             adaptor=self._adaptor.copy())
         out._bypass = True
         out.update(self)
         out._bypass = False
@@ -700,6 +712,7 @@ class CheckedDict(dict):
                choices: Union[Set, tuple] = None,
                range: tuple[Any, Any] = None,
                validatefunc: validatefunc_t = None,
+               adaptor: Callable[[str, Any, Any], Any] = None,
                doc: str = None) -> None:
         """
         Add a ``key: value`` pair to the default settings.
@@ -748,6 +761,8 @@ class CheckedDict(dict):
             validator[key] = validatefunc
         if doc:
             self._docs[key] = doc
+        if adaptor:
+            self._adaptor[key] = adaptor
 
     def __getitem__(self, key: str):
         if (value := dict.get(self, key, _UNKNOWN)) is not _UNKNOWN:
@@ -918,28 +933,30 @@ class CheckedDict(dict):
             if validatortype == 'choices':
                 choices = self.getChoices(key)
                 if choices is not None and value not in choices:
-                    return f"key {key} should be one of {choices}, got {value}"
+                    if isinstance(value, str):
+                        value = f"'{value}'"
+                    return f"key '{key}' should be one of {choices}, got {value}"
             elif validatortype == 'func':
                 func = self.getValidateFunc(key)
                 assert func is not None
                 error = func(self, key, value)
                 if error is False:
-                    return f"{value} is not valid for key {key}"
+                    return f"{value} is not valid for key '{key}'"
                 elif isinstance(error, str) and error:
-                    return f"{value} is not valid for key {key}: {error}"
+                    return f"{value} is not valid for key '{key}': {error}"
             elif validatortype == 'type':
                 t = self.getType(key)
                 if t == float:
                     if not _isfloaty(value):
-                        return f"Expected floatlike for key {key}, got {type(value).__name__}"
+                        return f"Expected floatlike for key '{key}', got {type(value).__name__}"
                 elif t == str:
                     if not isinstance(value, (bytes, str)):
-                        return f"Expected str or bytes for key {key}, got {type(value).__name__}"
+                        return f"Expected str or bytes for key '{key}', got {type(value).__name__}"
                 elif not isinstance(value, t):
-                    return f"Expected {t.__name__} for key {key}, got {type(value).__name__}"
+                    return f"Expected {t.__name__} for key '{key}', got {type(value).__name__}"
             elif validatortype == 'range':
                 if (r := self.getRange(key)) and not (r[0] <= value <= r[1]):
-                    return f"Value for key {key} should be within range {r}, got {value}"
+                    return f"Value for key '{key}' should be within range {r}, got {value}"
         return None
 
     def validatorTypes(self, key: str) -> list[str]:
@@ -1313,6 +1330,7 @@ class ConfigDict(CheckedDict):
                  default: dict[str, Any] = None,
                  validator: dict[str, Any] = None,
                  docs: dict[str, str] = None,
+                 adaptor: dict[str, Callable[[str, Any, Any], Any]] = None,
                  precallback: Callable[[ConfigDict, str, Any, Any], Any] = None,
                  persistent=False,
                  load=True,
@@ -1351,6 +1369,7 @@ class ConfigDict(CheckedDict):
         self.fmt = fmt
         super().__init__(default=default,
                          validator=validator,
+                         adaptor=adaptor,
                          docs=docs,
                          callback=self._mycallback,
                          precallback=precallback,
@@ -1833,10 +1852,10 @@ class ConfigDict(CheckedDict):
         keysNotInDefault = confdict.keys() - self.default.keys()
         needsSave = False
         if keysNotInDefault:
-            logger.warning(f"ConfigDict {self._name}, saved at {configpath}\n"
-                           "There are keys defined in the saved config which are not"
-                           " present in the default config, they will be skipped: \n"
-                           f"   {keysNotInDefault}")
+            logger.info(f"ConfigDict {self._name}, saved at {configpath}\n"
+                        "There are keys defined in the saved config which are not"
+                        " present in the default config, they will be skipped: \n"
+                        f"   {keysNotInDefault}\n ")
             for k in keysNotInDefault:
                 del confdict[k]
             needsSave = True
