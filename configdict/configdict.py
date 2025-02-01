@@ -171,12 +171,6 @@ def _makeReplacer(conditions: dict) -> Callable:
     Args:
         conditions: a dictionary mapping a string to its replacement
 
-    Example::
-
-        >>> replacer = makeReplacer({"&":"&amp;", " ":"_", "(":"\\(", ")":"\\)"})
-        >>> replacer("foo & (bar)")
-        "foo_&amp;_\(bar\)"
-
     """
     rep = {re.escape(k): v for k, v in conditions.items()}
     pattern = re.compile("|".join(rep.keys()))
@@ -1797,6 +1791,9 @@ class ConfigDict(CheckedDict):
             if key not in self:
                 self[key] = other[key]
 
+    # def saveKey(self, key: str) -> None:
+    #    config = 
+
     def load(self, configpath: str = None) -> None:
         """
         Read the saved config, update self.
@@ -1829,7 +1826,6 @@ class ConfigDict(CheckedDict):
 
             # Now the dict can be used
 
-        When
         """
         assert self.default
         if len(self) == 0:
