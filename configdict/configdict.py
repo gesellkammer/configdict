@@ -30,7 +30,7 @@ Example
     config = ConfigDict("myproj.subproj")
     config.addKey("keyA", 10, doc="documentaion of keyA")
     config.addKey("keyB", 0.5, range=(0, 1))
-    config.addKey("keyC", "blue", choices=("blue", "red"), 
+    config.addKey("keyC", "blue", choices=("blue", "red"),
                   doc="documentation of keyC")
     config.load()
 
@@ -81,18 +81,16 @@ from __future__ import annotations
 import appdirs
 import os
 import json
-
-import yaml
 import logging
 import sys
 import re
 import textwrap
 import tempfile
 from functools import cache
-from types import FunctionType
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Optional, Any, Union, Callable, TypeVar, Set
+    from typing import Any, Callable, TypeVar
     validatefunc_t = Callable[[dict, str, Any], bool]
     _CheckedDictT = TypeVar("_CheckedDictT", bound="CheckedDict")
     _ConfigDictT = TypeVar("_ConfigDictT", bound="ConfigDict")
@@ -107,6 +105,7 @@ logger = logging.getLogger("configdict")
 
 
 _UNKNOWN = object()
+INVALID = object()
 
 
 class ReadOnlyError(Exception):
@@ -185,11 +184,11 @@ def normalizeKey(key: str) -> str:
     return _keyNormalizer(key.lower())
 
 
-def _yamlComment(doc: Optional[str],
+def _yamlComment(doc: str | None,
                  default: Any,
-                 choices: Optional[set],
-                 valuerange: Optional[tuple[float, float]],
-                 valuetype: Optional[str],
+                 choices: set | None = None,
+                 valuerange: tuple[float, float] | None = None,
+                 valuetype: str | None = None,
                  maxwidth=80) -> str:
     """
     This generated the yaml comments used when saving the config to yaml
@@ -223,20 +222,12 @@ def _yamlComment(doc: Optional[str],
     if valuetype:
         infoparts.append(f"type: {valuetype}")
     if choices:
-
         infoparts.append(f"choices: {', '.join(map(str, choices))}")
     if valuerange:
         infoparts.append(f"range: {valuerange[0]} - {valuerange[1]}")
     if infoparts:
         lines.append("# ** " + ", ".join(infoparts))
     return "\n".join(lines)
-
-
-def _yamlValue(value) -> str:
-    if isinstance(value, tuple):
-        value = list(value)
-    s = yaml.dump(value, default_flow_style=True)
-    return s.replace("\n...\n", "")
 
 
 def _typeName(t: str | type | tuple[type, ...]) -> str:
@@ -261,10 +252,11 @@ def _asYaml(d: dict[str, Any],
             keys: list[str] | None = None,
             advancedPrefix: str = '.'
             ) -> str:
+    import yaml
+
     lines = []
 
     # detect if keys have advanced keys and they are all at the end
-
     if keys:
         items = [(k, d[k]) for k in keys]
     else:
@@ -275,6 +267,12 @@ def _asYaml(d: dict[str, Any],
         addAdvancedSeparator = True
     else:
         addAdvancedSeparator = False
+
+    def _yamlValue(value) -> str:
+        if isinstance(value, tuple):
+            value = list(value)
+        s = yaml.dump(value, default_flow_style=True)
+        return s.replace("\n...\n", "")
 
     for key, value in items:
         if addAdvancedSeparator and key.startswith(advancedPrefix):
@@ -295,9 +293,9 @@ def _asYaml(d: dict[str, Any],
                                choices=choices, valuerange=valuerange,
                                valuetype=valuetypestr)
         lines.append(comment)
-        l = f"{key}: {_yamlValue(value)}"
-        lines.append(l)
-        if not l.endswith("\n"):
+        yamlvalue = f"{key}: {_yamlValue(value)}"
+        lines.append(yamlvalue)
+        if not yamlvalue.endswith("\n"):
             lines.append("")
     return "\n".join(lines)
 
@@ -334,7 +332,7 @@ def _checkDocs(docs: dict[str, str], keys: set[str]) -> bool:
     keyslist = list(keys)
     for key in docs.keys():
         if key not in keys:
-            likely = _bestMatches(text=key, options=keyslist, limit=16, minpercent=60)
+            likely = _bestMatches(text=key, options=keyslist, limit=16)
             logger.warning(f"Key {key} not defined. Did you mean {likely}?. \nPossible keys: {keys}")
             ok = False
     return ok
@@ -384,7 +382,7 @@ def _openInStandardApp(path: str) -> None:
         subprocess.call(["xdg-open", path])
     elif platform == "win32":
         # This function is only present in windows
-        os.startfile(path)
+        os.startfile(path)  # type: ignore
     elif platform == "darwin":
         subprocess.call(["open", path])
     else:
@@ -411,7 +409,7 @@ def _waitOnFileModified(path: str, timeout: float | None = None, notification=''
     directory, base = os.path.split(path)
     if not directory:
         directory = "."
-    handler = PatternMatchingEventHandler([base], ignore_patterns="",
+    handler = PatternMatchingEventHandler(patterns=[base], ignore_patterns=None,
                                           ignore_directories=True, case_sensitive=True)
     observer = Observer()
     modified = False
@@ -444,12 +442,15 @@ def _showInfoDialog(msg: str, title: str = None) -> None:
         msg: the message to display
         title: a title for the window
     """
-    import tkinter as tk
-    from tkinter import messagebox
-    window = tk.Tk()
-    window.wm_withdraw()
-    messagebox.showinfo(title, msg)
-    window.destroy()
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        window = tk.Tk()
+        window.wm_withdraw()
+        messagebox.showinfo(title, msg)
+        window.destroy()
+    except ImportError as e:
+        raise ImportError(f"tkinter does not seem to be installed: {e}")
 
 
 def _waitForClick(title: str = None):
@@ -460,24 +461,10 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
-def _bestMatches(text: str, options: list[str], limit: int, minpercent: int, lengthMatchPercent=0) -> list[str]:
-    from fuzzywuzzy import process
-    possibleChoices = process.extract(text, options, limit=limit)
-    possibleChoices.sort(key=lambda item: item[1], reverse=True)
-    if lengthMatchPercent:
-        lens = len(text)
-        lengthdiff = lens * (1 - lengthMatchPercent/100)
-        minlength = lens - lengthdiff
-        maxlength = lens + lengthdiff
-        return [choice for choice, percent in possibleChoices
-                if percent >= minpercent and minlength <= len(choice) <= maxlength]
-    else:
-        selected = [choice for choice, percent in possibleChoices
-                    if percent >= minpercent]
-        return selected[:limit]
-
-
-INVALID = object()
+def _bestMatches(text: str, options: list[str], limit: int) -> list[str]:
+    import thefuzz.process
+    matches = thefuzz.process.extract(text, choices=options, limit=limit)
+    return [match[0] for match in matches]
 
 
 def _forceHash(values) -> int:
@@ -702,12 +689,12 @@ class CheckedDict(dict):
     def addKey(self,
                key: str,
                value: Any,
-               type: Union[type, tuple[type, ...]] = None,
-               choices: Union[Set, tuple] = None,
-               range: tuple[Any, Any] = None,
-               validatefunc: validatefunc_t = None,
-               adaptor: Callable[[str, Any, Any], Any] = None,
-               doc: str = None) -> None:
+               type: type | tuple[type, ...] | None = None,
+               choices: set | tuple | None = None,
+               range: tuple[Any, Any] | None = None,
+               validatefunc: validatefunc_t | None = None,
+               adaptor: Callable[[str, Any, Any], Any] | None = None,
+               doc: str | None = None) -> None:
         """
         Add a ``key: value`` pair to the default settings.
 
@@ -804,8 +791,8 @@ class CheckedDict(dict):
         if self._callback is not None:
             self._callback(key, value)
 
-    def _bestMatches(self, key: str, limit=16, minpercent=60):
-        return _bestMatches(key, list(self._allowedkeys), limit=limit, minpercent=minpercent)
+    def _bestMatches(self, key: str, limit=16) -> list[str]:
+        return _bestMatches(key, list(self._allowedkeys), limit=limit)
 
     def load(self) -> None:
         """
@@ -855,7 +842,7 @@ class CheckedDict(dict):
                     return errormsg
         return ""
 
-    def getValidateFunc(self, key: str) -> Optional[validatefunc_t]:
+    def getValidateFunc(self, key: str) -> validatefunc_t | None:
         """
         Returns a function to validate a value for ``key``
 
@@ -873,7 +860,7 @@ class CheckedDict(dict):
             f"Validate func should be callable for key {key}, got {func}"
         return func
 
-    def getChoices(self, key: str) -> Optional[list]:
+    def getChoices(self, key: str) -> list | None:
         """
         Return a seq. of possible values for key ``k`` or ``None``
         """
@@ -884,18 +871,22 @@ class CheckedDict(dict):
             return None
         key2 = key+"::choices"
         choices = self._validator.get(key2, None)
-        if isinstance(choices, FunctionType):
+        if choices is None:
+            return None
+
+        if callable(choices):
             realchoices = choices()
+            assert isinstance(realchoices, list), \
+                f"Choices should be a list for key {key}, got {realchoices}"
             self._validator[key2] = set(realchoices)
             return realchoices
         return choices
 
-    def getDoc(self, key: str) -> Optional[str]:
+    def getDoc(self, key: str) -> str:
         """ Get documentation for key (if present) """
-        if self._docs:
-            return self._docs.get(key)
+        return self._docs.get(key, '')
 
-    def checkValue(self, key: str, value) -> Optional[str]:
+    def checkValue(self, key: str, value) -> str | None:
         """
         Check if value is valid for key
 
@@ -940,14 +931,14 @@ class CheckedDict(dict):
                     return f"{value} is not valid for key '{key}': {error}"
             elif validatortype == 'type':
                 t = self.getType(key)
-                if t == float:
+                if t is float:
                     if not _isfloaty(value):
                         return f"Expected floatlike for key '{key}', got {type(value).__name__}"
-                elif t == str:
+                elif t is str:
                     if not isinstance(value, (bytes, str)):
                         return f"Expected str or bytes for key '{key}', got {type(value).__name__}"
                 elif not isinstance(value, t):
-                    return f"Expected {t.__name__} for key '{key}', got {type(value).__name__}"
+                    return f"Expected type {t} for key '{key}', got {type(value).__name__}"
             elif validatortype == 'range':
                 if (r := self.getRange(key)) and not (r[0] <= value <= r[1]):
                     return f"Value for key '{key}' should be within range {r}, got {value}"
@@ -989,7 +980,7 @@ class CheckedDict(dict):
         validatorTypesCache[key] = validators
         return validators
 
-    def getRange(self, key: str) -> Optional[tuple]:
+    def getRange(self, key: str) -> tuple | None:
         """
         Returns the valid range for this key's value, if specified.
 
@@ -1009,7 +1000,7 @@ class CheckedDict(dict):
             return None
         return self._validator.get(key+"::range", None)
 
-    def getType(self, key: str) -> Union[type, tuple[type, ...]]:
+    def getType(self, key: str) -> type | tuple[type, ...]:
         """
         Returns the expected type for key's value
 
@@ -1166,7 +1157,7 @@ class CheckedDict(dict):
         return "".join(parts)
 
 
-def _loadJson(path: str) -> Optional[dict]:
+def _loadJson(path: str) -> dict | None:
     try:
         return json.load(open(path))
     except json.JSONDecodeError:
@@ -1175,7 +1166,8 @@ def _loadJson(path: str) -> Optional[dict]:
         logger.debug("Using default as fallback")
 
 
-def _loadYaml(path: str, fail=False) -> Optional[dict]:
+def _loadYaml(path: str, fail=False) -> dict | None:
+    import yaml
     try:
         with open(path) as f:
             return yaml.load(f, Loader=yaml.SafeLoader)
@@ -1186,7 +1178,7 @@ def _loadYaml(path: str, fail=False) -> Optional[dict]:
             raise e
 
 
-def _loadDict(path: str) -> Optional[dict]:
+def _loadDict(path: str) -> dict | None:
     fmt = os.path.splitext(path)[1]
     if fmt == ".json":
         return _loadJson(path)
@@ -1236,14 +1228,14 @@ class ConfigDict(CheckedDict):
         persistent: if True, any change to the dict will be automatically saved.
             Otherwise a dict can be saved manually via :meth:`ConfigDict.save`
 
-        load: if True, the saved version will be loaded after creation. 
+        load: if True, the saved version will be loaded after creation.
             This is disabled if no default dict is given. This is the case when building
             the default after creation - :meth:`ConfigDict.load` should be called
             manually in this case (see example).
 
         precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
             If given, it is called *before* the modification is done. This function
-            should return **None** to allow modification, **any value** to modify the 
+            should return **None** to allow modification, **any value** to modify the
             value, or **raise ValueError** to stop the transaction
 
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
@@ -1378,7 +1370,7 @@ class ConfigDict(CheckedDict):
                 self.load()
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """
         The name of this ConfigDict. The name determines where it is saved
         """
@@ -1458,7 +1450,7 @@ class ConfigDict(CheckedDict):
         Returns True if self and other share same default
         """
         return self.default == other.default
-        
+
     def clone(self: _ConfigDictT, updates: dict = None, name: str = None, persistent=False,
               cloneCallbacks=True, **kws
               ) -> _ConfigDictT:
@@ -1466,8 +1458,8 @@ class ConfigDict(CheckedDict):
         Create a clone of this dict
 
         Args:
-            name: the name of the clone. If not given, the name of this dict is used. 
-            persistent: Should the clone be made persitent? 
+            name: the name of the clone. If not given, the name of this dict is used.
+            persistent: Should the clone be made persitent?
             cloneCallbacks: should the registered callbacks of the original (if any) be
                 cloned?
             updates: a dict with updates
@@ -1775,7 +1767,7 @@ class ConfigDict(CheckedDict):
         self.load(configfile)
         if self.persistent:
             self.save()
-            
+
     def _updateWithDefault(self, bypass=True) -> None:
         try:
             self._bypass = True
@@ -1792,7 +1784,7 @@ class ConfigDict(CheckedDict):
                 self[key] = other[key]
 
     # def saveKey(self, key: str) -> None:
-    #    config = 
+    #    config =
 
     def load(self, configpath: str = None) -> None:
         """
@@ -1949,7 +1941,7 @@ def _checkName(name):
             " It should contain letters, numbers and any of '.', '_', ':'")
 
 
-def getConfig(name: str) -> Optional[ConfigDict]:
+def getConfig(name: str) -> ConfigDict | None:
     """
     Retrieve a previously created ConfigDict.
 
@@ -1965,7 +1957,6 @@ def getConfig(name: str) -> Optional[ConfigDict]:
         the ConfigDict, if found. None otherwise.
 
     """
-    assert name, "name is empty"
     name = _normalizeName(name)
     _checkName(name)
     return ConfigDict._registry.get(name)
