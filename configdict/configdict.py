@@ -876,10 +876,13 @@ class CheckedDict(dict):
 
         if callable(choices):
             realchoices = choices()
-            assert isinstance(realchoices, list), \
-                f"Choices should be a list for key {key}, got {realchoices}"
-            self._validator[key2] = set(realchoices)
-            return realchoices
+            if isinstance(realchoices, list):
+                return realchoices
+            elif isinstance(realchoices, (tuple, set)):
+                return list(realchoices)
+            else:
+                raise TypeError(f"Expected a list, tuple or set for key {key}, got {realchoices}")
+
         return choices
 
     def getDoc(self, key: str) -> str:
@@ -1016,15 +1019,15 @@ class CheckedDict(dict):
         See Also: :meth:`checkValue`
         """
         if self._validator is not None:
-            definedtype = self._validator.get(key+"::type")
-            if definedtype:
+            if definedtype := self._validator.get(key+"::type"):
                 return definedtype
             choices = self.getChoices(key)
             if choices:
                 types = set(type(choice) for choice in choices)
-                if len(types) == 1:
-                    return type(next(iter(choices)))
-                return tuple(types)
+                out = type(next(iter(choices))) if len(types) == 1 else tuple(types)
+                self._validator[f"{key}::type"] = out
+                return out
+
         defaultval = self.default.get(key, _UNKNOWN)
         if defaultval is _UNKNOWN:
             raise KeyError(f"Key {key} is not present in default config. "
@@ -1783,9 +1786,6 @@ class ConfigDict(CheckedDict):
             if key not in self:
                 self[key] = other[key]
 
-    # def saveKey(self, key: str) -> None:
-    #    config =
-
     def load(self, configpath: str = None) -> None:
         """
         Read the saved config, update self.
@@ -1798,10 +1798,11 @@ class ConfigDict(CheckedDict):
         keys can be added to this dict.
 
         Args:
-            configpath: an custom path to load a saved version from. Otherwise
+            configpath: a custom path to load a saved version from. Otherwise
                 it is loaded from :meth:`ConfigDict.getPath` (this is only
                 possible if the dict has a name, since the resolved path
                 is determined from the name)
+
 
         Example
         -------
@@ -1819,16 +1820,21 @@ class ConfigDict(CheckedDict):
             # Now the dict can be used
 
         """
-        assert self.default
+        if not self.default:
+            raise ValueError("No default config defined")
+
         if len(self) == 0:
             # load after defining the default
             super().update(self.default)
+
         if configpath is None:
             configpath = self.getPath()
+
         if not configpath or not os.path.exists(configpath):
             logger.debug(f"No saved version found for dict '{self.name}', using default")
             super().update(self.default)
             return
+
         logger.debug(f"Reading config from disk: {configpath}")
         confdict = _loadDict(configpath)
         if confdict is None:
