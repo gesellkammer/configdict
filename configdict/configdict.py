@@ -250,7 +250,7 @@ def _asYaml(d: dict[str, Any],
             default: dict[str, Any],
             validator: dict[str, Any] | None = None,
             keys: list[str] | None = None,
-            advancedPrefix: str = '.'
+            hiddenPrefix: str = '.'
             ) -> str:
     import yaml
 
@@ -262,8 +262,8 @@ def _asYaml(d: dict[str, Any],
     else:
         items = list(d.items())
 
-    firstAdvanced = next((i for i, item in enumerate(items) if item[0].startswith(advancedPrefix)), None)
-    if firstAdvanced is not None and all(k.startswith(advancedPrefix) for k, v in items[firstAdvanced:]):
+    firstAdvanced = next((i for i, item in enumerate(items) if item[0].startswith(hiddenPrefix)), None)
+    if firstAdvanced is not None and all(k.startswith(hiddenPrefix) for k, v in items[firstAdvanced:]):
         addAdvancedSeparator = True
     else:
         addAdvancedSeparator = False
@@ -275,7 +275,7 @@ def _asYaml(d: dict[str, Any],
         return s.replace("\n...\n", "")
 
     for key, value in items:
-        if addAdvancedSeparator and key.startswith(advancedPrefix):
+        if addAdvancedSeparator and key.startswith(hiddenPrefix):
             addAdvancedSeparator = False
             lines.append("\n"
                          "#####################################################\n"
@@ -461,6 +461,18 @@ def _openInEditor(cfg: str) -> None:
     _openInStandardApp(cfg)
 
 
+def _checkType(value, key: str, t) -> str:
+    if t is float:
+        if not _isfloaty(value):
+            return f"Expected floatlike for key '{key}', got {type(value).__name__}"
+    elif t is str:
+        if not isinstance(value, (bytes, str)):
+            return f"Expected str or bytes for key '{key}', got {type(value).__name__}"
+    elif not isinstance(value, t):
+        return f"Expected type {t} for key '{key}', got {type(value).__name__}"
+    return ''
+
+
 def _bestMatches(text: str, options: list[str], limit: int) -> list[str]:
     import thefuzz.process
     matches = thefuzz.process.extract(text, choices=options, limit=limit)
@@ -511,6 +523,8 @@ class CheckedDict(dict):
             any change and can modify the value or return INVALID to prevent the modification
         strict: if False keys are case and punktuation insensitive, meaning that
             a key like 'foo.barBaz' will also be matched by 'foo_bar_baz' or 'foo_barbaz'
+        useDefaultTypes: if True, the type of the default value for a given key is enforced,
+            with the exception of keys with a None value.
 
     Example
     =======
@@ -542,7 +556,8 @@ class CheckedDict(dict):
                  autoload=True,
                  strict=True,
                  readonly=False,
-                 advancedPrefix='.') -> None:
+                 useDefaultTypes=True,
+                 hiddenPrefix='.') -> None:
 
         self.default: dict[str, Any] = default if default is not None else {}
         """The default dict"""
@@ -560,7 +575,8 @@ class CheckedDict(dict):
         self._building = False
         self._normalizedKeys: dict[str, str] = {}
         self._bypass = False
-        self._advancedPrefix = advancedPrefix
+        self._hiddenPrefix = hiddenPrefix
+        self._useDefaultTypes = useDefaultTypes
         self._cache = {}
 
         if docs:
@@ -934,17 +950,16 @@ class CheckedDict(dict):
                     return f"{value} is not valid for key '{key}': {error}"
             elif validatortype == 'type':
                 t = self.getType(key)
-                if t is float:
-                    if not _isfloaty(value):
-                        return f"Expected floatlike for key '{key}', got {type(value).__name__}"
-                elif t is str:
-                    if not isinstance(value, (bytes, str)):
-                        return f"Expected str or bytes for key '{key}', got {type(value).__name__}"
-                elif not isinstance(value, t):
-                    return f"Expected type {t} for key '{key}', got {type(value).__name__}"
+                if errmsg := _checkType(value, key=key, t=t):
+                    return errmsg
             elif validatortype == 'range':
                 if (r := self.getRange(key)) and not (r[0] <= value <= r[1]):
                     return f"Value for key '{key}' should be within range {r}, got {value}"
+        if self._useDefaultTypes:
+            t = self.getType(key)
+            if t is not None and (errmsg := _checkType(value, key=key, t=t)):
+                return errmsg
+
         return None
 
     def validatorTypes(self, key: str) -> list[str]:
@@ -1109,7 +1124,7 @@ class CheckedDict(dict):
             keys = self._sortedKeys()
         else:
             keys = list(self.keys())
-        keys.sort(key=lambda key: int(key.startswith(self._advancedPrefix)))
+        keys.sort(key=lambda key: int(key.startswith(self._hiddenPrefix)))
         return _asYaml(self, doc=self._docs, validator=self._validator,
                        default=self.default, keys=keys)
 
@@ -1139,7 +1154,7 @@ class CheckedDict(dict):
             return out
         keys = list(self.keys())
         keys.sort()
-        keys.sort(key=lambda k: int(k.startswith(self._advancedPrefix)))
+        keys.sort(key=lambda k: int(k.startswith(self._hiddenPrefix)))
         self._cache['sortedkeys'] = keys
         return keys
 
@@ -1242,7 +1257,7 @@ class ConfigDict(CheckedDict):
             value, or **raise ValueError** to stop the transaction
 
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
-        advancedPrefix: keys with this prefix are marked as advanced. Whenever the dict
+        hiddenPrefix: keys with this prefix are marked as advanced. Whenever the dict
             is displayed or edited, these keys appear after all the other keys
 
 
@@ -1327,7 +1342,7 @@ class ConfigDict(CheckedDict):
                  sortKeys=False,
                  description='',
                  strict=True,
-                 advancedPrefix='.') -> None:
+                 hiddenPrefix='.') -> None:
 
         self._name = ''
         self._base = ''
@@ -1364,7 +1379,7 @@ class ConfigDict(CheckedDict):
                          precallback=precallback,
                          autoload=False,
                          strict=strict,
-                         advancedPrefix=advancedPrefix)
+                         hiddenPrefix=hiddenPrefix)
         self.sortKeys = sortKeys
 
         if default is not None:
@@ -1522,7 +1537,7 @@ class ConfigDict(CheckedDict):
         """Reset the given key to its default value"""
         self[key] = self.default[key]
 
-    def save(self, path: str = None, header='') -> None:
+    def save(self, path='', header='') -> None:
         """
         Save this to its persistent path (or a custom path)
 
@@ -1680,16 +1695,21 @@ class ConfigDict(CheckedDict):
     def _repr_pretty_(self, printer, cycle) -> str:
         return printer.text(str(self))
 
+    def _repr_keys(self) -> list[str]:
+        return self._sortedKeys()
+
     def _repr_rows(self) -> list[str]:
         try:
-            termwidth = os.get_terminal_size()[0] - 6
+            termwidth = os.get_terminal_size()[0] - 8
         except OSError:
             termwidth = 80
-        maxwidth = self._infowidth + self._valuewidth + max(len(k) for k in self.keys())
+        keys = self._repr_keys()
+        minvaluewidth = min(self._valuewidth, max(len(str(v)) for v in self.values()))
+        maxwidth = self._infowidth + minvaluewidth + max(len(k) for k in keys) + 6
         infowidth = int(self._infowidth / maxwidth * termwidth)
-        valuewidth = int(self._valuewidth / maxwidth * termwidth)
+        valuewidth = int(minvaluewidth / maxwidth * termwidth)
+        print(valuewidth, infowidth)
         rows = []
-        keys = sorted(self.keys())
         for k in keys:
             v = self[k]
             infostr = self._infoStr(k)
