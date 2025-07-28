@@ -872,8 +872,8 @@ class CheckedDict(dict):
 
         """
         func = self._validator.get(key, None)
-        assert func is None or callable(func), \
-            f"Validate func should be callable for key {key}, got {func}"
+        if func is not None and not callable(func):
+            raise ValueError(f"Validate func should be callable for key '{key}', got {func}")
         return func
 
     def getChoices(self, key: str) -> list | None:
@@ -933,6 +933,23 @@ class CheckedDict(dict):
             logger.debug(f"Validator not set, cannot check value {value} (key '{key}')")
             return
 
+        # The func validator takes precedence and shadows all other validators.
+        # It is still possible to add other validators for the purpose of
+        # documentation, but they are ignored
+        if func := self._validator.get(key):
+            func = self.getValidateFunc(key)
+            assert func is not None
+            # Func returns True if ok, or False or a str message if an error ocurred
+            out = func(self, key, value)
+            if out is True:
+                return None
+            import inspect
+            source = inspect.getsource(func)
+            if isinstance(out, str):
+                return f"'{value}' is not valid for key '{key}': {out}\n. Validator func: {source}"
+            else:
+                return f"'{value}' is not valid for key '{key}'. Validator func: {source}"
+
         for validatortype in self.validatorTypes(key):
             if validatortype == 'choices':
                 choices = self.getChoices(key)
@@ -940,14 +957,6 @@ class CheckedDict(dict):
                     if isinstance(value, str):
                         value = f"'{value}'"
                     return f"key '{key}' should be one of {choices}, got {value}"
-            elif validatortype == 'func':
-                func = self.getValidateFunc(key)
-                assert func is not None
-                error = func(self, key, value)
-                if error is False:
-                    return f"{value} is not valid for key '{key}'"
-                elif isinstance(error, str) and error:
-                    return f"{value} is not valid for key '{key}': {error}"
             elif validatortype == 'type':
                 t = self.getType(key)
                 if errmsg := _checkType(value, key=key, t=t):
@@ -955,6 +964,12 @@ class CheckedDict(dict):
             elif validatortype == 'range':
                 if (r := self.getRange(key)) and not (r[0] <= value <= r[1]):
                     return f"Value for key '{key}' should be within range {r}, got {value}"
+            elif validatortype == 'func':
+                # This should have been checked outside the loop
+                continue
+            else:
+                raise ValueError(f"Unknown validator: '{validatortype}'")
+
         if self._useDefaultTypes:
             t = self.getType(key)
             if t is not None and (errmsg := _checkType(value, key=key, t=t)):
@@ -987,14 +1002,14 @@ class CheckedDict(dict):
             return validatorTypesCache[key]
 
         validators = []
-        if f"{key}::choices" in self._validator:
-            validators.append('choices')
-        if f"{key}::range" in self._validator:
-            validators.append('range')
         if key in self._validator:
             validators.append('func')
+        if f"{key}::choices" in self._validator:
+            validators.append('choices')
         if f"{key}::type" in self._validator:
             validators.append('type')
+        if f"{key}::range" in self._validator:
+            validators.append('range')
         validatorTypesCache[key] = validators
         return validators
 
