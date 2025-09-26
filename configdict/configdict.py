@@ -1274,6 +1274,8 @@ class ConfigDict(CheckedDict):
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
         hiddenPrefix: keys with this prefix are marked as advanced. Whenever the dict
             is displayed or edited, these keys appear after all the other keys
+        showHidden: if False, keys starting with the hiddenPrefix will not be shown
+            when the dict is displayed
 
 
     Example
@@ -1357,7 +1359,9 @@ class ConfigDict(CheckedDict):
                  sortKeys=False,
                  description='',
                  strict=True,
-                 hiddenPrefix='.') -> None:
+                 hiddenPrefix='.',
+                 showHidden=False
+        ) -> None:
 
         self._name = ''
         self._base = ''
@@ -1365,6 +1369,7 @@ class ConfigDict(CheckedDict):
         self._configPath = None
         self._callbacks = []
         self._loaded = False
+        self._showHidden = showHidden
         self.bypassCallbacks = False
         self.description = description
 
@@ -1668,24 +1673,6 @@ class ConfigDict(CheckedDict):
         writer.writerows(rows)
         return s.getvalue()
 
-    # def _infoStr(self, k: str) -> str:
-    #     info = []
-    #     choices = self.getChoices(k)
-    #     if choices:
-    #         choices = sortNatural([str(choice) for choice in choices])
-    #         choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
-    #         info.append(choicestr)
-    #     elif (keyrange := self.getRange(k)) is not None:
-    #         low, high = keyrange
-    #         info.append(f"between {low} - {high}")
-    #     else:
-    #         typestr = self.getTypestr(k)
-    #         info.append("type: " + typestr)
-    #
-    #     if self[k] != self.default[k]:
-    #         info.append(f'default: {self.default[k]}')
-    #     return" | ".join(info) if info else ""
-
     def _repr_html_(self) -> str:
         parts = [f'<div><h4>{type(self).__name__}: <strong>{self.name}</strong></h4>']
         if self.persistent:
@@ -1693,6 +1680,9 @@ class ConfigDict(CheckedDict):
         parts.append("<br>")
         rows = []
         keys = self._sortedKeys()
+        if not self._showHidden and self._hiddenPrefix:
+            keys = [k for k in keys if not k.startswith(self._hiddenPrefix)]
+
         for k in keys:
             v = self[k]
             descr = self.getDoc(k)
