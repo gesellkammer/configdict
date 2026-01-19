@@ -1713,7 +1713,6 @@ class ConfigDict(CheckedDict):
         maxwidth = self._infowidth + minvaluewidth + max(len(k) for k in keys) + 6
         infowidth = int(self._infowidth / maxwidth * termwidth)
         valuewidth = int(minvaluewidth / maxwidth * termwidth)
-        print(valuewidth, infowidth)
         rows = []
         for k in keys:
             v = self[k]
