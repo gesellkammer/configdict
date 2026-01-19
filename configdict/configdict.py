@@ -464,12 +464,12 @@ def _openInEditor(cfg: str) -> None:
 def _checkType(value, key: str, t) -> str:
     if t is float:
         if not _isfloaty(value):
-            return f"Expected floatlike for key '{key}', got {type(value).__name__}"
+            return f"Expected floatlike for key '{key}', got {value} of type {type(value).__name__}"
     elif t is str:
         if not isinstance(value, (bytes, str)):
-            return f"Expected str or bytes for key '{key}', got {type(value).__name__}"
+            return f"Expected str or bytes for key '{key}', got {value} of type {type(value).__name__}"
     elif not isinstance(value, t):
-        return f"Expected type {t} for key '{key}', got {type(value).__name__}"
+        return f"Expected type {t} for key '{key}', got {value} of type {type(value).__name__}"
     return ''
 
 
