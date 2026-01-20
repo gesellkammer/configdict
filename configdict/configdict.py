@@ -658,7 +658,9 @@ class CheckedDict(dict):
         choices = self.getChoices(k)
         if choices:
             choices = sortNatural([str(choice) for choice in choices])
-            choicestr = "{" + ", ".join(str(ch) for ch in choices) + "}"
+            strs = ['""' if isinstance(ch, str) and not ch else str(ch)
+                    for ch in choices]
+            choicestr = "{" + ", ".join(strs) + "}"
             info.append(choicestr)
         elif (keyrange := self.getRange(k)) is not None:
             low, high = keyrange
@@ -1688,7 +1690,11 @@ class ConfigDict(CheckedDict):
             descr = self.getDoc(k)
             if v == self.default[k]:
                 strv = str(v)
+                if not strv:
+                    strv = '""'
             else:
+                if isinstance(v, str) and not v:
+                    v = '""'
                 strv = f'<i><b>{v}</b></i>'
             rows.append((k, strv, self._infoStr(k), descr))
         table = _htmlTable(rows, headers=('Key', 'Value', 'Type', 'Descr'), maxwidths=[0, 0, 150, 400],
