@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "configdict"
-version = "2.13.3"
+version = "2.13.4"
 description = "A supercharged dict used as configuration"
 authors = [
     { name = "Eduardo Moguillansky", email = "eduardo.moguillansky@gmail.com" },
