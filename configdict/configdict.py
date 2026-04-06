@@ -184,11 +184,11 @@ def normalizeKey(key: str) -> str:
     return _keyNormalizer(key.lower())
 
 
-def _yamlComment(doc: str | None,
+def _yamlComment(doc: str,
                  default: Any,
                  choices: set | None = None,
                  valuerange: tuple[float, float] | None = None,
-                 valuetype: str | None = None,
+                 valuetype: str = '',
                  maxwidth=80) -> str:
     """
     This generated the yaml comments used when saving the config to yaml
@@ -218,7 +218,7 @@ def _yamlComment(doc: str | None,
         else:
             lines.extend("# " + line for line in textwrap.wrap(doc, maxwidth))
     if choices:
-        valuetype = None
+        valuetype = ''
     if valuetype:
         infoparts.append(f"type: {valuetype}")
     if choices:
@@ -289,7 +289,7 @@ def _asYaml(d: dict[str, Any],
         else:
             choices, valuerange, valuetype = None, None, None
         valuetypestr = type(value).__name__ if valuetype is None else _typeName(valuetype)
-        comment = _yamlComment(doc=doc.get(key), default=default.get(key),
+        comment = _yamlComment(doc=doc.get(key, ''), default=default.get(key),
                                choices=choices, valuerange=valuerange,
                                valuetype=valuetypestr)
         lines.append(comment)
@@ -434,7 +434,7 @@ def _waitOnFileModified(path: str, timeout: float | None = None, notification=''
     return modified
 
 
-def _showInfoDialog(msg: str, title: str = None) -> None:
+def _showInfoDialog(msg: str, title: str = '') -> None:
     """
     Creates a simple confirmation dialog box
 
@@ -453,7 +453,7 @@ def _showInfoDialog(msg: str, title: str = None) -> None:
         raise ImportError(f"tkinter does not seem to be installed: {e}")
 
 
-def _waitForClick(title: str = None):
+def _waitForClick(title: str = ''):
     _showInfoDialog("Click OK when finished editing", title=title)
 
 
@@ -514,7 +514,7 @@ class CheckedDict(dict):
             choices can be defined lazyly by giving a lambda which returns a list
             of possible choices
         adaptor: a dict mapping keys to functions to convert the value before being set. An adaptor
-            callback has the form `(key: str, newvalue: Any, oldvalue: Any) -> Any`. The value returned
+            callback has the form `(value: Any) -> Any`. The value returned
             will be the value set for the given key
         docs: a dict containing help lines for keys defined in default
         callback: function ``(key, value) -> None``. This function is called **after**
@@ -547,11 +547,11 @@ class CheckedDict(dict):
     """
 
     def __init__(self,
-                 default: dict[str, Any] = None,
-                 validator: dict[str, Any] = None,
-                 docs: dict[str, str] = None,
-                 callback: Callable[[str, Any], None] = None,
-                 adaptor: dict[str, Callable[[str, Any, Any], Any]] = None,
+                 default: dict[str, Any] | None = None,
+                 validator: dict[str, Any] | None = None,
+                 docs: dict[str, str] | None = None,
+                 callback: Callable[[str, Any], None] | None = None,
+                 adaptor: dict[str, Callable[[Any], Any]] | None = None,
                  precallback=None,
                  autoload=True,
                  strict=True,
@@ -626,7 +626,7 @@ class CheckedDict(dict):
         out._bypass = False
         return out
 
-    def clone(self: _CheckedDictT, updates: dict = None, **kws) -> _CheckedDictT:
+    def clone(self: _CheckedDictT, updates: dict | None = None, **kws) -> _CheckedDictT:
         """
         Clone self with modifications
 
@@ -679,7 +679,7 @@ class CheckedDict(dict):
         """
         return self.clone(updates=self.default)
 
-    def diff(self, other: dict = None) -> dict:
+    def diff(self, other: dict | None = None) -> dict:
         """
         Get a dict containing keys:values which differ from the default or from another dict
 
@@ -696,9 +696,15 @@ class CheckedDict(dict):
         return {k: v for k, v in self.items()
                 if v != other.get(k, _UNKNOWN)}
 
-    def __call__(self, key: str, value: Any, type=None, choices=None,
-                 range: tuple[Any, Any] = None, doc: str = '',
-                 validatefunc: validatefunc_t = None) -> None:
+    def __call__(self,
+                 key: str,
+                 value: Any,
+                 type=None,
+                 choices=None,
+                 range: tuple[Any, Any] | None = None,
+                 doc: str = '',
+                 validatefunc: validatefunc_t | None = None
+                 ) -> None:
         if not self._building:
             raise RuntimeError("Not inside a context manager context")
         self.addKey(key=key, value=value, type=type, choices=choices,
@@ -711,8 +717,8 @@ class CheckedDict(dict):
                choices: set | tuple | None = None,
                range: tuple[Any, Any] | None = None,
                validatefunc: validatefunc_t | None = None,
-               adaptor: Callable[[str, Any, Any], Any] | None = None,
-               doc: str | None = None) -> None:
+               adaptor: Callable[[Any], Any] | None = None,
+               doc='') -> None:
         """
         Add a ``key: value`` pair to the default settings.
 
@@ -747,6 +753,7 @@ class CheckedDict(dict):
 
         """
         self.default[key] = value
+        self._docs[key] = doc
         self._allowedkeys.add(key)
         validator = self._validator
         if type:
@@ -758,8 +765,6 @@ class CheckedDict(dict):
         if validatefunc:
             assert callable(validatefunc), f"Validate function ({validatefunc}) is not callable for key: {key}"
             validator[key] = validatefunc
-        if doc:
-            self._docs[key] = doc
         if adaptor:
             self._adaptor[key] = adaptor
 
@@ -795,14 +800,22 @@ class CheckedDict(dict):
         oldvalue = self.get(key)
         if oldvalue is not None and oldvalue == value:
             return
+
+        # precallback and adaptor are called before checking
+        if self._precallback:
+            newvalue = self._precallback(self, key, oldvalue, value)
+            if newvalue is INVALID:
+                logger.debug("Invalid value for key '{key}': {value}, old value was: {oldvalue}")
+            else:
+                value = newvalue
+
+        if func := self._adaptor.get(key):
+            value = func(value)
+
         if self._validator:
             errormsg = self.checkValue(key, value)
             if errormsg:
                 raise ValueError(errormsg)
-        if self._precallback:
-            newvalue = self._precallback(self, key, oldvalue, value)
-            if newvalue is not INVALID:
-                value = newvalue
 
         super().__setitem__(key, value)
 
@@ -874,8 +887,6 @@ class CheckedDict(dict):
 
         """
         func = self._validator.get(key, None)
-        if func is not None and not callable(func):
-            raise ValueError(f"Validate func should be callable for key '{key}', got {func}")
         return func
 
     def getChoices(self, key: str) -> list | None:
@@ -1099,7 +1110,7 @@ class CheckedDict(dict):
                 raise KeyError(f"Unsupported key: {k}")
         return out
 
-    def update(self, d: dict = None, **kws) -> None:
+    def update(self, d: dict | None = None, **kws) -> None:
         """
         Update ths dict with `d` or any key:value pair passed as keyword
         """
@@ -1120,7 +1131,7 @@ class CheckedDict(dict):
                 raise ValueError(f"invalid keywords: {errormsg}")
             super().update(kws)
 
-    def updated(self: _CheckedDictT, d: dict = None, **kws) -> _CheckedDictT:
+    def updated(self: _CheckedDictT, d: dict | None = None, **kws) -> _CheckedDictT:
         """
         The same as :meth:`~CheckedDict.update`, but returns self
         """
@@ -1268,9 +1279,9 @@ class ConfigDict(CheckedDict):
             the default after creation - :meth:`ConfigDict.load` should be called
             manually in this case (see example).
 
-        precallback: function `(dict, key, oldvalue, newvalue) -> None|newvalue`,
+        precallback: function `(dict, key, oldvalue, newvalue) -> INVALID|newvalue`,
             If given, it is called *before* the modification is done. This function
-            should return **None** to allow modification, **any value** to modify the
+            should return **INVALID** to prevent modification, **any value** to modify the
             value, or **raise ValueError** to stop the transaction
 
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
@@ -1350,11 +1361,11 @@ class ConfigDict(CheckedDict):
 
     def __init__(self,
                  name: str,
-                 default: dict[str, Any] = None,
-                 validator: dict[str, Any] = None,
-                 docs: dict[str, str] = None,
-                 adaptor: dict[str, Callable[[str, Any, Any], Any]] = None,
-                 precallback: Callable[[ConfigDict, str, Any, Any], Any] = None,
+                 default: dict[str, Any] | None = None,
+                 validator: dict[str, Any] | None = None,
+                 docs: dict[str, str] | None = None,
+                 adaptor: dict[str, Callable[[Any], Any]] | None = None,
+                 precallback: Callable[[ConfigDict, str, Any, Any], Any] | None = None,
                  persistent=False,
                  load=True,
                  fmt='yaml',
@@ -1410,7 +1421,7 @@ class ConfigDict(CheckedDict):
                 self.load()
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> str:
         """
         The name of this ConfigDict. The name determines where it is saved
         """
@@ -1451,7 +1462,7 @@ class ConfigDict(CheckedDict):
         if self._persistent:
             self.save()
 
-    def update(self, d: dict = None, **kws) -> None:
+    def update(self, d: dict | None = None, **kws) -> None:
         """
         Update this dict with the values in d.
 
@@ -1491,7 +1502,7 @@ class ConfigDict(CheckedDict):
         """
         return self.default == other.default
 
-    def clone(self: _ConfigDictT, updates: dict = None, name: str = None, persistent=False,
+    def clone(self: _ConfigDictT, updates: dict | None = None, name: str = '', persistent=False,
               cloneCallbacks=True, **kws
               ) -> _ConfigDictT:
         """
@@ -1508,7 +1519,7 @@ class ConfigDict(CheckedDict):
         Returns:
             the cloned dict
         """
-        if name is None:
+        if not name:
             name = self._name
         out = self.__class__(default=self.default, validator=self._validator, docs=self._docs,
                              persistent=persistent, load=False, name=name)
@@ -1583,7 +1594,7 @@ class ConfigDict(CheckedDict):
             fmt = os.path.splitext(path)[1][1:]
             assert fmt in {'json', 'yaml', 'csv'}, f"Invalid format {fmt}, expected one of 'yaml', 'json', 'csv'"
         logger.debug(f"Saving config to {path}")
-        if fmt is None:
+        if not fmt:
             fmt = self.fmt
         if fmt == 'json':
             with open(path, "w") as f:
@@ -1709,7 +1720,7 @@ class ConfigDict(CheckedDict):
     def _repr_keys(self) -> list[str]:
         return self._sortedKeys()
 
-    def _repr_rows(self) -> list[str]:
+    def _repr_rows(self) -> list[tuple[str, ...]]:
         try:
             termwidth = os.get_terminal_size()[0] - 8
         except OSError:
@@ -1816,7 +1827,7 @@ class ConfigDict(CheckedDict):
             if key not in self:
                 self[key] = other[key]
 
-    def load(self, configpath: str = None) -> None:
+    def load(self, configpath: str = '') -> None:
         """
         Read the saved config, update self.
 
@@ -1857,7 +1868,7 @@ class ConfigDict(CheckedDict):
             # load after defining the default
             super().update(self.default)
 
-        if configpath is None:
+        if not configpath:
             configpath = self.getPath()
 
         if not configpath or not os.path.exists(configpath):
@@ -1867,7 +1878,7 @@ class ConfigDict(CheckedDict):
 
         logger.debug(f"Reading config from disk: {configpath}")
         confdict = _loadDict(configpath)
-        if confdict is None:
+        if not confdict:
             logger.error("Could not load saved config, skipping")
             return
 
@@ -1888,6 +1899,21 @@ class ConfigDict(CheckedDict):
         # * if a key is shared between default and read dict, read dict has priority
         # * if a key is present only in default, it is added
 
+        # Convert any values
+        if self._precallback:
+            default = self.default
+            for k, v in confdict.items():
+                newvalue = self._precallback(self, k, default[k], v)
+                if newvalue == INVALID:
+                    logger.error(f"Invalid value {v} for key 'key', oldvalue was {default[k]}")
+                else:
+                    confdict[k] = newvalue
+
+        if self._adaptor:
+            for k, v in confdict.items():
+                if func := self._adaptor.get(k):
+                    confdict[k] = func(v)
+
         # check invalid values
         if self._validator:
             keysWithInvalidValues = []
@@ -1900,13 +1926,14 @@ class ConfigDict(CheckedDict):
                     keysWithInvalidValues.append(k)
             for k in keysWithInvalidValues:
                 del confdict[k]
+
         super().update(confdict)
         self._loaded = True
         if needsSave and self.persistent:
             self.save()
 
 
-def _makeName(configname: str, base: str = None) -> str:
+def _makeName(configname: str, base: str = '') -> str:
     if base is not None:
         return f"{base}.{configname}"
     else:
