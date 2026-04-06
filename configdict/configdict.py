@@ -91,15 +91,14 @@ from functools import cache
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
+    from typing_extensions import Self
     validatefunc_t = Callable[[dict, str, Any], bool]
     _CheckedDictT = TypeVar("_CheckedDictT", bound="CheckedDict")
     _ConfigDictT = TypeVar("_ConfigDictT", bound="ConfigDict")
 
 __all__ = ("CheckedDict",
            "ConfigDict",
-           "getConfig",
-           "activeConfigs",
-           "configPathFromName")
+           "getConfig")
 
 logger = logging.getLogger("configdict")
 
@@ -1535,6 +1534,13 @@ class ConfigDict(CheckedDict):
                 out.registerCallback(func, pattern)
         return out
 
+    @classmethod
+    def activeConfigs(cls) -> dict[str, ConfigDict]:
+        """
+        Returns a dict of active configs
+        """
+        return cls._registry.copy()
+
     def registerCallback(self,
                          func: Callable[[ConfigDict, str, Any], None],
                          pattern=r".*"
@@ -1763,7 +1769,7 @@ class ConfigDict(CheckedDict):
         if not self._name:
             return ''
         if not self._configPath:
-            self._configPath = configPathFromName(self._name, self.fmt)
+            self._configPath = _configPathFromName(self._name, self.fmt)
         return self._configPath
 
     def edit(self, waitOnModified=True, sortKeys=False) -> None:
@@ -1933,31 +1939,31 @@ class ConfigDict(CheckedDict):
             self.save()
 
 
-def _makeName(configname: str, base: str = '') -> str:
-    if base is not None:
-        return f"{base}.{configname}"
-    else:
-        return f".{configname}"
+# def _makeName(configname: str, base: str = '') -> str:
+#     if base is not None:
+#         return f"{base}.{configname}"
+#     else:
+#         return f".{configname}"
 
 
-def _mergeDicts(readdict: dict[str, Any], default: dict[str, Any]) -> dict[str, Any]:
-    """
-    Merge readdict into default
-    Args:
-        readdict:
-        default:
+# def _mergeDicts(readdict: dict[str, Any], default: dict[str, Any]) -> dict[str, Any]:
+#     """
+#     Merge readdict into default
+#     Args:
+#         readdict:
+#         default:
 
-    Returns:
-        the merged dict
-    """
-    out = {}
-    sharedkeys = readdict.keys() & default.keys()
-    for key in sharedkeys:
-        out[key] = readdict[key]
-    onlyInDefault = default.keys() - readdict.keys()
-    for key in onlyInDefault:
-        out[key] = default[key]
-    return out
+#     Returns:
+#         the merged dict
+#     """
+#     out = {}
+#     sharedkeys = readdict.keys() & default.keys()
+#     for key in sharedkeys:
+#         out[key] = readdict[key]
+#     onlyInDefault = default.keys() - readdict.keys()
+#     for key in onlyInDefault:
+#         out[key] = default[key]
+#     return out
 
 
 def _parseName(name: str) -> tuple[str | None, str]:
@@ -1994,7 +2000,7 @@ def _normalizeName(name: str) -> str:
     return name
 
 
-def _checkName(name):
+def _checkName(name: str) -> None:
     """
     check if name is a valid name for a config
     """
@@ -2025,26 +2031,19 @@ def getConfig(name: str) -> ConfigDict | None:
     return ConfigDict._registry.get(name)
 
 
-def activeConfigs() -> dict[str, ConfigDict]:
-    """
-    Returns a dict of active configs
-    """
-    return ConfigDict._registry.copy()
+# def _removeConfigFromDisk(name: str) -> bool:
+#     """
+#     Remove the given config from disc, returns True if it was found and removed,
+#     False otherwise
+#     """
+#     configpath = _configPathFromName(name)
+#     if os.path.exists(configpath):
+#         os.remove(configpath)
+#         return True
+#     return False
 
 
-def _removeConfigFromDisk(name: str) -> bool:
-    """
-    Remove the given config from disc, returns True if it was found and removed,
-    False otherwise
-    """
-    configpath = configPathFromName(name)
-    if os.path.exists(configpath):
-        os.remove(configpath)
-        return True
-    return False
-
-
-def configPathFromName(name: str, fmt='yaml') -> str:
+def _configPathFromName(name: str, fmt='yaml') -> str:
     """
     Given a config name, return the path where it should be saved
 
