@@ -91,14 +91,11 @@ from functools import cache
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
-    from typing_extensions import Self
+    # from typing_extensions import Self
     validatefunc_t = Callable[[dict, str, Any], bool]
     _CheckedDictT = TypeVar("_CheckedDictT", bound="CheckedDict")
     _ConfigDictT = TypeVar("_ConfigDictT", bound="ConfigDict")
 
-__all__ = ("CheckedDict",
-           "ConfigDict",
-           "getConfig")
 
 logger = logging.getLogger("configdict")
 
@@ -156,10 +153,6 @@ def sortNatural(seq: list, key: Callable[[Any], str] | None = None) -> list:
     if key is not None:
         return sorted(seq, key=lambda x: alphanum_key(key(x)))
     return sorted(seq, key=alphanum_key)
-
-
-def _asChoiceStr(x) -> str:
-    return f"'{x}'" if isinstance(x, str) else str(x)
 
 
 def _makeReplacer(conditions: dict) -> Callable:
@@ -1202,13 +1195,13 @@ class CheckedDict(dict):
         return "".join(parts)
 
 
-def _loadJson(path: str) -> dict | None:
-    try:
-        return json.load(open(path))
-    except json.JSONDecodeError:
-        error = sys.exc_info()[0]
-        logger.error(f"Could not read config {path}: {error}")
-        logger.debug("Using default as fallback")
+# def _loadJson(path: str) -> dict | None:
+#     try:
+#         return json.load(open(path))
+#     except json.JSONDecodeError:
+#         error = sys.exc_info()[0]
+#         logger.error(f"Could not read config {path}: {error}")
+#         logger.debug("Using default as fallback")
 
 
 def _loadYaml(path: str, fail=False) -> dict | None:
@@ -1225,12 +1218,10 @@ def _loadYaml(path: str, fail=False) -> dict | None:
 
 def _loadDict(path: str) -> dict | None:
     fmt = os.path.splitext(path)[1]
-    if fmt == ".json":
-        return _loadJson(path)
-    elif fmt == ".yaml":
+    if fmt == ".yaml" or fmt == ".yml":
         return _loadYaml(path, fail=False)
     else:
-        raise ValueError(f"format {fmt} unknown, supported formats: json, yaml")
+        raise ValueError(f"format {fmt} unknown, supported formats: yaml")
 
 
 class ConfigDict(CheckedDict):

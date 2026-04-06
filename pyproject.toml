@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "configdict"
-version = "2.14.0"
+version = "2.14.1"
 description = "A supercharged dict used as configuration"
 authors = [
     { name = "Eduardo Moguillansky", email = "eduardo.moguillansky@gmail.com" },
@@ -23,7 +23,7 @@ dependencies = [
     "PyYAML",
     "watchdog",
     "thefuzz",
-    "typing_extensions"
+    # "typing_extensions"
 ]
 
 [tool.setuptools]
