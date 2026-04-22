@@ -91,7 +91,7 @@ from functools import cache
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Callable, TypeVar
-    # from typing_extensions import Self
+    from typing_extensions import Self
     validatefunc_t = Callable[[dict, str, Any], bool]
     _CheckedDictT = TypeVar("_CheckedDictT", bound="CheckedDict")
     _ConfigDictT = TypeVar("_ConfigDictT", bound="ConfigDict")
@@ -173,8 +173,10 @@ _keyNormalizer = _makeReplacer({'.': '', '_': '', '-': ''})
 
 @cache
 def normalizeKey(key: str) -> str:
-    return _keyNormalizer(key.lower())
-
+    if key.startswith("."):
+        return "." + _keyNormalizer(key.lower())
+    else:
+        return _keyNormalizer(key.lower())
 
 def _yamlComment(doc: str,
                  default: Any,
@@ -578,8 +580,10 @@ class CheckedDict(dict):
             if autoload:
                 self.load()
             if not strict:
-                self._normalizedKeys = {normalizeKey(k): k for k in self.default.keys()}
-
+                # Do not normalize hidden keys
+                self._normalizedKeys = {normalizeKey(k):k
+                                        for k in self.default.keys()
+                                        if not k.startswith(".")}
         self.readonly = readonly
         self._strict = strict
 
@@ -598,11 +602,23 @@ class CheckedDict(dict):
     def _changed(self) -> None:
         self._allowedkeys = set(self.default.keys())
 
-    @staticmethod
-    def normalizeKey(key: str) -> str:
-        return normalizeKey(key)
+    def normalizeKey(self, key: str) -> str:
+        """
+        Normalize this key. Does not check if the resulting key is valid
+        """
+        return self._normalizedKeys.get(key) or normalizeKey(key)
 
-    def copy(self: _CheckedDictT) -> _CheckedDictT:
+    def addAlias(self, key: str, alias: str) -> None:
+        """
+        Add an alias for key
+
+        This allows multiple keys for the same value
+        """
+        if self._strict:
+            raise ValueError("Cannot add aliases to strict dicts")
+        self._normalizedKeys[alias] = key
+
+    def copy(self) -> Self:
         """
         Create a copy of this dict
         """
@@ -612,13 +628,18 @@ class CheckedDict(dict):
                              precallback=self._precallback,
                              callback=self._callback,
                              autoload=False,
+                             strict=True,
                              adaptor=self._adaptor.copy())
         out._bypass = True
         out.update(self)
+        if not self._strict:
+            # if not strict we copy the normalized keys and aliases instead of building them
+            out._strict = True
+            out._normalizedKeys = self._normalizedKeys.copy()
         out._bypass = False
         return out
 
-    def clone(self: _CheckedDictT, updates: dict | None = None, **kws) -> _CheckedDictT:
+    def clone(self, updates: dict | None = None, **kws) -> Self:
         """
         Clone self with modifications
 
@@ -658,14 +679,14 @@ class CheckedDict(dict):
             low, high = keyrange
             info.append(f"between {low} - {high}")
         else:
-            typestr = self.getTypestr(k)
+            typestr = self.getTypeHint(k)
             info.append("type: " + typestr)
 
         if self[k] != self.default[k]:
             info.append(f'default: {self.default[k]}')
         return" | ".join(info) if info else ""
 
-    def makeDefault(self: _CheckedDictT) -> _CheckedDictT:
+    def makeDefault(self) -> Self:
         """
         Create a version of this class with all values set to the default
         """
@@ -710,6 +731,7 @@ class CheckedDict(dict):
                range: tuple[Any, Any] | None = None,
                validatefunc: validatefunc_t | None = None,
                adaptor: Callable[[Any], Any] | None = None,
+               typehint: str = '',
                doc='') -> None:
         """
         Add a ``key: value`` pair to the default settings.
@@ -759,6 +781,8 @@ class CheckedDict(dict):
             validator[key] = validatefunc
         if adaptor:
             self._adaptor[key] = adaptor
+        if typehint:
+            validator[f"{key}::typehint"] = typehint
 
     def __getitem__(self, key: str):
         if (value := dict.get(self, key, _UNKNOWN)) is not _UNKNOWN:
@@ -781,13 +805,15 @@ class CheckedDict(dict):
                 value = "'{value}'"
             raise ReadOnlyError(f"This dict is read-only. Tried to set '{key}'={value}")
 
+        origkey = key
+
         if key not in self._allowedkeys:
-            if self._normalizedKeys and (normkey := self._normalizedKeys.get(normalizeKey(key))):
+            if normkey := self._normalizedKeys.get(key):
+                key = normkey
+            elif (normkey := self._normalizedKeys.get(normalizeKey(key))):
                 key = normkey
             else:
-                mostlikely = self._bestMatches(key=key, limit=8)
-                msg = f"Unknown key {key}. Did you mean {', '.join(mostlikely)}?"
-                raise KeyError(msg)
+                raise KeyError(f"Unknown key '{key}'. Nearest matches: {', '.join(self._bestMatches(key=key, limit=8))}")
 
         oldvalue = self.get(key)
         if oldvalue is not None and oldvalue == value:
@@ -795,7 +821,7 @@ class CheckedDict(dict):
 
         # precallback and adaptor are called before checking
         if self._precallback:
-            newvalue = self._precallback(self, key, oldvalue, value)
+            newvalue = self._precallback(self, key, oldvalue, value, origkey)
             if newvalue is INVALID:
                 logger.debug("Invalid value for key '{key}': {value}, old value was: {oldvalue}")
             else:
@@ -814,7 +840,7 @@ class CheckedDict(dict):
         if self._callback is not None:
             self._callback(key, value)
 
-    def _bestMatches(self, key: str, limit=16) -> list[str]:
+    def _bestMatches(self, key: str, limit=8) -> list[str]:
         return _bestMatches(key, list(self._allowedkeys), limit=limit)
 
     def load(self) -> None:
@@ -1038,6 +1064,22 @@ class CheckedDict(dict):
             return None
         return self._validator.get(key+"::range", None)
 
+    def getTypeHint(self, key: str) -> str:
+        """
+        Returns either the type (as str) or the typehint as set in the validator
+
+        Typehints are useful when the validator is set via a lambda (not via ::type).
+        In this case the user can make clear what is actually expected by writing
+        a typehint for a given key as `<key>::typehint`:`<typehint>`
+        """
+        hint = self._validator.get(key+'::typehint', '') if self._validator else ''
+        if hint:
+            return hint
+        t = self.getType(key)
+        if isinstance(t, tuple):
+            return '|'.join(x.__name__ for x in t)
+        return t.__name__
+
     def getType(self, key: str) -> type | tuple[type, ...]:
         """
         Returns the expected type for key's value
@@ -1123,7 +1165,7 @@ class CheckedDict(dict):
                 raise ValueError(f"invalid keywords: {errormsg}")
             super().update(kws)
 
-    def updated(self: _CheckedDictT, d: dict | None = None, **kws) -> _CheckedDictT:
+    def updated(self, d: dict | None = None, **kws) -> Self:
         """
         The same as :meth:`~CheckedDict.update`, but returns self
         """
@@ -1235,11 +1277,10 @@ class ConfigDict(CheckedDict):
     Args:
         name: a str of the form ``prefix.name`` or ``prefix/name``
             (these are the same) or simply ``name`` if this is an
-            isolated configuration. The
-            data will be saved at ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if
-            prefix is given, or ``$USERCONFIGDIR/{name}.{fmt}``.
-            For instance, in Linux a config with a name "myproj.myconfig" and
-            a yaml format will be saved to "~/.config/mydir/myconfig.yaml"
+            isolated configuration. The data will be saved at
+            ``$USERCONFIGDIR/{prefix}/{name}.{fmt}`` if prefix is given, or
+            ``$USERCONFIGDIR/{name}.{fmt}``. For instance, in Linux a config
+            with a name "myproj.myconfig" and will be saved to "~/.config/mydir/myconfig.yaml"
 
         default: a dict with all default values. A config can accept only
             keys which are already present in the default. This argument can be
@@ -1269,10 +1310,11 @@ class ConfigDict(CheckedDict):
             the default after creation - :meth:`ConfigDict.load` should be called
             manually in this case (see example).
 
-        precallback: function `(dict, key, oldvalue, newvalue) -> INVALID|newvalue`,
+        precallback: function `(dict: d, key: str, oldvalue, newvalue, origkey='') -> INVALID|newvalue`,
             If given, it is called *before* the modification is done. This function
             should return **INVALID** to prevent modification, **any value** to modify the
-            value, or **raise ValueError** to stop the transaction
+            value, or **raise ValueError** to stop the transaction. origkey is the key
+            before normalization, for non-strict dicts.
 
         sortKeys: if True, keys are sorted whenever the dict is saved/edited.
         hiddenPrefix: keys with this prefix are marked as advanced. Whenever the dict
@@ -1447,7 +1489,7 @@ class ConfigDict(CheckedDict):
         if self.bypassCallbacks:
             return
         for pattern, func in self._callbacks:
-            if re.match(pattern, key):
+            if not pattern or re.match(pattern, key):
                 func(self, key, value)
         if self._persistent:
             self.save()
@@ -1474,7 +1516,13 @@ class ConfigDict(CheckedDict):
         if persistent:
             self.save()
 
-    def copy(self: _CheckedDictT) -> _CheckedDictT:
+    # def isCongruentWith(self, other: Self) -> bool:
+    #     """
+    #     Returns True if self and other share same default
+    #     """
+    #     return self.default == other.default
+
+    def copy(self) -> Self:
         """
         Create a copy if this dict.
 
@@ -1486,15 +1534,13 @@ class ConfigDict(CheckedDict):
         """
         return self.clone()
 
-    def isCongruentWith(self, other: ConfigDict) -> bool:
-        """
-        Returns True if self and other share same default
-        """
-        return self.default == other.default
-
-    def clone(self: _ConfigDictT, updates: dict | None = None, name: str = '', persistent=False,
-              cloneCallbacks=True, **kws
-              ) -> _ConfigDictT:
+    def clone(self,
+              updates: dict | None = None,
+              name: str = '',
+              persistent=False,
+              cloneCallbacks=True,
+              **kws
+              ) -> Self:
         """
         Create a clone of this dict
 
@@ -1534,19 +1580,20 @@ class ConfigDict(CheckedDict):
 
     def registerCallback(self,
                          func: Callable[[ConfigDict, str, Any], None],
-                         pattern=r".*"
+                         pattern=""
                          ) -> None:
         """
         Register a callback to be fired when a key matching the given pattern is changed.
 
         If no pattern is given, the function will be called for every key.
+        The function is called **after** the change
 
         Args:
             func: a function of the form ``(dict, key, value) -> None``, where *dict* is
                 this ConfigDict itself, *key* is the key which was just changed and *value*
                 is the new value.
             pattern: a regex pattern. The function will be called if the pattern matches
-                the key being modified.
+                the key being modified. If no pattern is given, it is called for every key
 
         """
         self._callbacks.append((pattern, func))
