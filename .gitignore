@@ -7,3 +7,4 @@ docs/_build
 docs/api
 *.sublime-workspace
 build
+uv.lock
